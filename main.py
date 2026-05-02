@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from dotenv import load_dotenv
+from database import supabase
 
 # Load environment variables from .env
 load_dotenv()
@@ -29,3 +30,9 @@ async def home(request: Request):
 @app.get("/ping")
 async def ping():
     return {"status": "ok", "message": "FastAPI is running!"}
+
+@app.get("/missions/json")
+async def missions_json():
+    """Temporary test route – fetch missions from Supabase."""
+    response = supabase.table("missions").select("*").execute()
+    return response.data
