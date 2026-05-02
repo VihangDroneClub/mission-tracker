@@ -3,10 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
+    <title>{% block title %}Mission Tracker{% endblock %}</title>
 </head>
 <body>
-    <h1>🚀 {{ title }}</h1>
-    <p>The application is alive!</p>
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+        {% if user %}
+            | Logged in as {{ user.email }} ({{ user.role }})
+            {% if user.role == 'admin' %}
+                | <a href="/admin/missions/create">New Mission</a>
+                | <a href="/admin/users">Manage Users</a>
+            {% endif %}
+            | <a href="/logout">Logout</a>
+        {% else %}
+            | <a href="/login">Login</a>
+        {% endif %}
+    </nav>
+    <hr>
+    {% block content %}{% endblock %}
 </body>
 </html>

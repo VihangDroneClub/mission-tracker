@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{% if project %}Edit{% else %}New{% endif %} Project for {{ mission.name }}</h2>
+<form method="POST" action="{% if project %}/projects/{{ project.id }}/edit{% else %}/missions/{{ mission.id }}/projects{% endif %}">
+    <label>Name: <input name="name" value="{{ project.name if project else '' }}" required></label><br>
+    <label>Description: <textarea name="description">{{ project.description if project else '' }}</textarea></label><br>
+    <button type="submit">Save</button>
+    <a href="{% if project %}/projects/{{ project.id }}{% else %}/missions/{{ mission.id }}{% endif %}">Cancel</a>
+</form>
+{% endblock %}
