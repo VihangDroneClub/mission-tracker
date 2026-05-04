@@ -1,26 +1,66 @@
 {% extends "base.html" %}
-{% block title %}Search{% endblock %}
+{% block title %}Advanced Search{% endblock %}
 {% block content %}
-<h1>Search Tasks</h1>
-<form action="/search" method="get">
+<h1>Search & Filter Tasks</h1>
+
+<form method="get" style="margin-bottom:20px;">
+    <!-- Text search -->
     <input type="text" name="q" value="{{ query }}" placeholder="Search tasks...">
-    <button type="submit">Search</button>
+    
+    <!-- Mission dropdown -->
+    <select name="mission_id" onchange="this.form.submit()">
+        <option value="">-- All Missions --</option>
+        {% for m in missions %}
+            <option value="{{ m.id }}" {% if selected_mission == m.id %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <!-- Project dropdown (populated only when mission is selected) -->
+    <select name="project_id">
+        <option value="">-- All Projects --</option>
+        {% for p in projects %}
+            <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <!-- Status -->
+    <select name="status">
+        <option value="" {% if not selected_status %}selected{% endif %}>-- Any Status --</option>
+        <option value="todo" {% if selected_status == 'todo' %}selected{% endif %}>To Do</option>
+        <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+        <option value="done" {% if selected_status == 'done' %}selected{% endif %}>Done</option>
+    </select>
+    
+    <!-- Month range -->
+    <label>From: <input type="month" name="start_month" value="{{ start_month }}"></label>
+    <label>To: <input type="month" name="end_month" value="{{ end_month }}"></label>
+    
+    <button type="submit">Filter</button>
 </form>
 
-{% if query %}
-    <h2>Results for "{{ query }}"</h2>
-    {% if results %}
-        <ul>
+<h2>Results ({{ results|length }})</h2>
+{% if results %}
+    <table border="1" width="100%">
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Assignee</th>
+            <th>Project</th>
+            <th>Mission</th>
+            <th>Created</th>
+        </tr>
         {% for task in results %}
-            <li>
-                <a href="/tasks/{{ task.id }}">{{ task.title }}</a>
-                <span>[{{ task.status }}]</span>
-                - Assigned to {{ task.assignee_id or 'Unassigned' }}
-            </li>
+        <tr>
+            <td><a href="/tasks/{{ task.id }}">{{ task.title }}</a></td>
+            <td>{{ task.status }}</td>
+            <td>{{ username_map.get(task.assignee_id, 'Unassigned') }}</td>
+            <td>{{ task.project_id }}</td>
+            <td>...</td>  {# We could fetch project name, but for brevity skip #}
+            <td>{{ task.created_at[:10] }}</td>
+        </tr>
         {% endfor %}
-        </ul>
-    {% else %}
-        <p>No tasks found.</p>
-    {% endif %}
+    </table>
+{% else %}
+    <p>No tasks match the filters.</p>
 {% endif %}
 {% endblock %}

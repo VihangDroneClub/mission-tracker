@@ -4,7 +4,7 @@
 <h1>Task: {{ task.title }}</h1>
 <p>{{ task.description }}</p>
 <p>Status: <strong>{{ task.status }}</strong></p>
-<p>Assigned to: {{ task.assignee_id or 'Unassigned' }}</p>
+<p>Assigned to: {{ username_map.get(task.assignee_id, 'Unassigned') }}</p>
 
 {% if user.role in ('lead', 'admin') %}
     <h3>Update Status</h3>
@@ -24,11 +24,30 @@
             <option value="">-- Unassigned --</option>
             {% for u in assignable_users %}
                 <option value="{{ u.id }}" {% if task.assignee_id == u.id %}selected{% endif %}>
-                    {{ u.id }} ({{ u.role }})
+                    {{ u.username or u.display_name or u.id }} ({{ u.role }})
                 </option>
             {% endfor %}
         </select>
         <button type="submit">Update Assignee</button>
+    </form>
+{% endif %}
+
+<!-- Comments Section -->
+<h2>Comments</h2>
+{% for comment in comments %}
+    <div style="border-left:3px solid #ccc; margin:5px; padding:5px;">
+        <small>{{ username_map.get(comment.user_id, 'Unknown') }} - {{ comment.created_at }}</small>
+        <p>{{ comment.content }}</p>
+    </div>
+{% else %}
+    <p>No comments yet.</p>
+{% endfor %}
+
+{% if user.role in ('lead', 'admin') %}
+    <h3>Add Comment</h3>
+    <form action="/tasks/{{ task.id }}/comment" method="post">
+        <textarea name="content" required></textarea>
+        <button type="submit">Post Comment</button>
     </form>
 {% endif %}
 

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<h1>Audit Log</h1>
+<table border="1">
+    <tr>
+        <th>Time</th>
+        <th>User</th>
+        <th>Action</th>
+        <th>Entity</th>
+        <th>Details</th>
+    </tr>
+    {% for log in logs %}
+    <tr>
+        <td>{{ log.created_at }}</td>
+        <td>{{ log.user_id }}</td>
+        <td>{{ log.action }}</td>
+        <td>{{ log.entity_type }} ({{ log.entity_id }})</td>
+        <td>
+            {% if log.new_values %}<small>New: {{ log.new_values }}</small>{% endif %}
+            {% if log.old_values %}<br><small>Old: {{ log.old_values }}</small>{% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

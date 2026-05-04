@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Monthly Progress{% endblock %}
+{% block content %}
+<h1>Monthly Progress</h1>
+<form method="get">
+    <input type="month" name="month" value="{{ month }}">
+    <button type="submit">View</button>
+</form>
+
+<h2>Mission / Project Breakdown for {{ month }}</h2>
+{% for mid, mdata in mission_stats.items() %}
+    <h3>{{ mdata.name }}</h3>
+    <ul>
+    {% for pid, pdata in mdata.projects.items() %}
+        <li>{{ pdata.name }}: {{ pdata.completed }}/{{ pdata.total }} done 
+            {% if pdata.total > 0 %}({{ (pdata.completed / pdata.total * 100) | round(1) }}%){% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+{% endfor %}
+
+<h2>Per‑Assignee Completions in {{ month }}</h2>
+<ul>
+{% for aid, count in assignee_stats.items() %}
+    <li>{{ username_map.get(aid, aid) }}: {{ count }} tasks completed</li>
+{% else %}
+    <li>No completions</li>
+{% endfor %}
+</ul>
+{% endblock %}

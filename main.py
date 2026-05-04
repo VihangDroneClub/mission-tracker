@@ -9,6 +9,7 @@ from database import supabase
 import auth
 from auth import set_auth_cookie, remove_auth_cookie, get_current_user, admin_required, lead_or_admin_required
 import crud
+from datetime import datetime
 
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
@@ -20,10 +21,14 @@ def render_template(template_name: str, request: Request, **kwargs) -> HTMLRespo
     html_content = template.render(request=request, **kwargs)
     return HTMLResponse(html_content)
 
+def get_username_map():
+    """Return dict mapping user_id -> username or display_name."""
+    users = crud.get_all_users_detailed()
+    return {u["id"]: u["username"] or u["display_name"] or u["id"] for u in users}
+
 # ---------- Public / test routes ----------
 @app.get("/")
 async def home(request: Request):
-    # Redirect to dashboard if logged in, else login
     token = request.cookies.get(auth.COOKIE_NAME)
     if token:
         try:
@@ -75,7 +80,6 @@ async def logout():
 @app.get("/dashboard")
 async def dashboard(request: Request, user: dict = Depends(get_current_user)):
     missions = crud.get_all_missions()
-    # For each mission, count projects and tasks
     mission_stats = []
     for m in missions:
         projects = crud.get_projects_for_mission(m["id"])
@@ -97,7 +101,7 @@ async def mission_detail(request: Request, mission_id: str, user: dict = Depends
     projects = crud.get_projects_for_mission(mission_id)
     return render_template("mission_detail.html", request, user=user, mission=mission, projects=projects)
 
-# Admin: create mission form & action
+# Admin: mission CRUD
 @app.get("/admin/missions/create")
 async def create_mission_form(request: Request, user: dict = Depends(admin_required)):
     return render_template("mission_form.html", request, user=user, mission=None)
@@ -127,28 +131,31 @@ async def delete_mission(mission_id: str, user: dict = Depends(admin_required)):
 async def project_detail(request: Request, project_id: str, user: dict = Depends(get_current_user)):
     project = crud.get_project(project_id)
     tasks = crud.get_tasks_for_project(project_id)
-    # get all users for assignment dropdown (profiles)
-    assignable_users = crud.get_all_users()  # list of {id, role}
-    return render_template("project_detail.html", request, user=user, project=project, tasks=tasks, assignable_users=assignable_users)
+    assignable_users = crud.get_all_users_detailed()
+    username_map = get_username_map()
+    return render_template("project_detail.html", request, user=user, project=project, tasks=tasks,
+                           assignable_users=assignable_users, username_map=username_map)
 
-# Admin: create project under a mission
+# Admin: project CRUD
 @app.get("/admin/projects/create")
 async def create_project_form(request: Request, mission_id: str, user: dict = Depends(admin_required)):
-    return render_template("project_form.html", request, user=user, mission_id=mission_id, project=None)
+    leads = crud.get_users_by_role("lead")
+    return render_template("project_form.html", request, user=user, mission_id=mission_id, project=None, leads=leads)
 
 @app.post("/admin/projects/create")
-async def create_project_action(request: Request, mission_id: str = Form(...), name: str = Form(...), description: str = Form(""), user: dict = Depends(admin_required)):
-    crud.create_project(name, description, mission_id, user["id"])
+async def create_project_action(request: Request, mission_id: str = Form(...), name: str = Form(...), description: str = Form(""), lead_id: str = Form(None), user: dict = Depends(admin_required)):
+    crud.create_project(name, description, mission_id, lead_id if lead_id else None, user["id"])
     return RedirectResponse(url=f"/missions/{mission_id}", status_code=303)
 
 @app.get("/admin/projects/{project_id}/edit")
 async def edit_project_form(request: Request, project_id: str, user: dict = Depends(admin_required)):
     project = crud.get_project(project_id)
-    return render_template("project_form.html", request, user=user, project=project, mission_id=project["mission_id"])
+    leads = crud.get_users_by_role("lead")
+    return render_template("project_form.html", request, user=user, project=project, mission_id=project["mission_id"], leads=leads)
 
 @app.post("/admin/projects/{project_id}/edit")
-async def edit_project_action(request: Request, project_id: str, name: str = Form(...), description: str = Form(""), user: dict = Depends(admin_required)):
-    crud.update_project(project_id, name, description, user["id"])
+async def edit_project_action(request: Request, project_id: str, name: str = Form(...), description: str = Form(""), lead_id: str = Form(None), user: dict = Depends(admin_required)):
+    crud.update_project(project_id, name, description, lead_id if lead_id else None, user["id"])
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 @app.post("/admin/projects/{project_id}/delete")
@@ -159,27 +166,22 @@ async def delete_project(project_id: str, user: dict = Depends(admin_required)):
     return RedirectResponse(url=f"/missions/{mission_id}", status_code=303)
 
 # ---------- Task operations ----------
-# Lead/Admin: add task to a project
 @app.post("/projects/{project_id}/tasks/create")
 async def add_task(request: Request, project_id: str, title: str = Form(...), description: str = Form(""), assignee_id: str = Form(None),
                    user: dict = Depends(lead_or_admin_required)):
-    # Allow empty string to be None
     assignee = assignee_id if assignee_id else None
     crud.create_task(title, description, project_id, assignee, user["id"])
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
-# Lead/Admin: update task status
 @app.post("/tasks/{task_id}/update-status")
 async def update_task_status(task_id: str, new_status: str = Form(...), user: dict = Depends(lead_or_admin_required)):
     try:
         crud.update_task_status(task_id, new_status, user["id"])
     except Exception as e:
-        # we could flash error later, for now just redirect back
         pass
     task = crud.get_task(task_id)
     return RedirectResponse(url=f"/projects/{task['project_id']}", status_code=303)
 
-# Lead/Admin: assign task
 @app.post("/tasks/{task_id}/assign")
 async def assign_task_endpoint(task_id: str, assignee_id: str = Form(""), user: dict = Depends(lead_or_admin_required)):
     assignee = assignee_id if assignee_id else None
@@ -187,13 +189,14 @@ async def assign_task_endpoint(task_id: str, assignee_id: str = Form(""), user: 
     task = crud.get_task(task_id)
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
-# Task detail page
 @app.get("/tasks/{task_id}")
 async def task_detail(request: Request, task_id: str, user: dict = Depends(get_current_user)):
     task = crud.get_task(task_id)
-    assignable_users = crud.get_all_users()
+    assignable_users = crud.get_all_users_detailed()
     comments = crud.get_comments_for_task(task_id)
-    return render_template("task_detail.html", request, user=user, task=task, assignable_users=assignable_users, comments=comments)
+    username_map = get_username_map()
+    return render_template("task_detail.html", request, user=user, task=task,
+                           assignable_users=assignable_users, comments=comments, username_map=username_map)
 
 # ---------- Comments ----------
 @app.post("/tasks/{task_id}/comment")
@@ -201,23 +204,71 @@ async def add_comment_endpoint(task_id: str, content: str = Form(...), user: dic
     crud.add_comment(task_id, content, user["id"])
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
-# ---------- Search ----------
+# ---------- Advanced Search ----------
 @app.get("/search")
-async def search(request: Request, q: str = "", user: dict = Depends(get_current_user)):
-    if not q.strip():
-        return render_template("search.html", request, user=user, results=[], query=q)
-    # Search in tasks title and description using ilike
-    search_filter = f"%{q}%"
-    results = supabase.table("tasks").select("*").or_(f"title.ilike.{search_filter},description.ilike.{search_filter}").execute().data
-    return render_template("search.html", request, user=user, results=results, query=q)
+async def search(
+    request: Request,
+    q: str = "",
+    mission_id: str = "",
+    project_id: str = "",
+    status: str = "",
+    start_month: str = "",
+    end_month: str = "",
+    user: dict = Depends(get_current_user)
+):
+    # Dropdown data
+    missions = crud.get_all_missions()
+    mission_id_val = mission_id if mission_id else None
+    projects = []
+    if mission_id_val:
+        projects = crud.get_projects_for_mission(mission_id_val)
+
+    # Build query
+    query = supabase.table("tasks").select("*")
+    
+    if q.strip():
+        search_filter = f"%{q.strip()}%"
+        query = query.or_(f"title.ilike.{search_filter},description.ilike.{search_filter}")
+    
+    if project_id:
+        query = query.eq("project_id", project_id)
+    
+    if status in ("todo", "in_progress", "done"):
+        query = query.eq("status", status)
+    
+    if start_month:
+        query = query.gte("created_at", f"{start_month}-01T00:00:00Z")
+    if end_month:
+        y, m = map(int, end_month.split('-'))
+        if m == 12:
+            next_month = f"{y+1}-01"
+        else:
+            next_month = f"{y}-{m+1:02d}"
+        query = query.lt("created_at", f"{next_month}-01T00:00:00Z")
+    
+    results = query.execute().data
+    
+    username_map = get_username_map()
+    return render_template(
+        "search.html",
+        request,
+        user=user,
+        results=results,
+        query=q,
+        missions=missions,
+        selected_mission=mission_id,
+        projects=projects,
+        selected_project=project_id,
+        selected_status=status,
+        start_month=start_month,
+        end_month=end_month,
+        username_map=username_map
+    )
 
 # ---------- Admin: User Management ----------
 @app.get("/admin/users")
 async def list_users(request: Request, user: dict = Depends(admin_required)):
-    profiles = crud.get_all_users()
-    # Enhance with email: we'll use supabase auth admin list_users if possible, but for simplicity we'll just display profile id and role.
-    # To make it useful, we can add a small helper to get email from auth.users via admin API if service_role key is available.
-    # For now, just show IDs.
+    profiles = crud.get_all_users_detailed()
     return render_template("admin_users.html", request, user=user, profiles=profiles)
 
 @app.post("/admin/users/{user_id}/role")
@@ -226,37 +277,43 @@ async def change_user_role(user_id: str, new_role: str = Form(...), user: dict =
         return HTMLResponse("Invalid role", status_code=400)
     supabase.table("profiles").update({"role": new_role}).eq("id", user_id).execute()
     crud.log_action(user["id"], "role_updated", "user", user_id,
-                    old_values={"role": "..."},  # we could fetch old role, but skip for now
+                    old_values={"role": "..."},
                     new_values={"role": new_role})
     return RedirectResponse(url="/admin/users", status_code=303)
 
-# ---------- Admin: task CRUD (optional but simple) ----------
-@app.get("/admin/tasks/create")
-async def create_task_form(request: Request, project_id: str, user: dict = Depends(admin_required)):
-    return render_template("task_form.html", request, user=user, project_id=project_id, task=None)
+@app.get("/admin/users/add")
+async def add_user_form(request: Request, user: dict = Depends(admin_required)):
+    return render_template("admin_add_user.html", request, user=user)
 
-@app.post("/admin/tasks/create")
-async def create_task_admin(request: Request, project_id: str = Form(...), title: str = Form(...), description: str = Form(""), assignee_id: str = Form(None), user: dict = Depends(admin_required)):
-    assignee = assignee_id if assignee_id else None
-    crud.create_task(title, description, project_id, assignee, user["id"])
-    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+@app.post("/admin/users/add")
+async def add_user_action(request: Request,
+                          email: str = Form(...),
+                          password: str = Form(...),
+                          username: str = Form(...),
+                          display_name: str = Form(...),
+                          role: str = Form(...),
+                          user: dict = Depends(admin_required)):
+    if role not in ("member", "lead", "admin"):
+        return HTMLResponse("Invalid role", status_code=400)
+    try:
+        crud.create_user_by_admin(email, password, username, display_name, role, user["id"])
+    except Exception as e:
+        return render_template("admin_add_user.html", request, user=user, error=str(e))
+    return RedirectResponse(url="/admin/users", status_code=303)
 
-@app.get("/admin/tasks/{task_id}/edit")
-async def edit_task_form(request: Request, task_id: str, user: dict = Depends(admin_required)):
-    task = crud.get_task(task_id)
-    return render_template("task_form.html", request, user=user, task=task, project_id=task["project_id"])
+# ---------- Admin: Audit Log ----------
+@app.get("/admin/audit-log")
+async def audit_log_view(request: Request, user: dict = Depends(admin_required)):
+    logs = crud.get_audit_logs(limit=100)
+    return render_template("audit_log.html", request, user=user, logs=logs)
 
-@app.post("/admin/tasks/{task_id}/edit")
-async def edit_task_admin(request: Request, task_id: str, title: str = Form(...), description: str = Form(""), assignee_id: str = Form(None), user: dict = Depends(admin_required)):
-    # For simplicity, we'll just update title/desc/assignee via a custom update function? We'll add a helper in crud.
-    # Since we didn't create an update_task function, let's build one inline or add to crud.py later.
-    # For now, we'll skip or handle basic fields.
-    pass
-
-@app.post("/admin/tasks/{task_id}/delete")
-async def delete_task(task_id: str, user: dict = Depends(admin_required)):
-    task = crud.get_task(task_id)
-    project_id = task["project_id"]
-    supabase.table("tasks").delete().eq("id", task_id).execute()
-    crud.log_action(user["id"], "task_deleted", "task", task_id, old_values=task)
-    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+# ---------- Progress Dashboard ----------
+@app.get("/progress")
+async def progress_dashboard(request: Request, month: str = None, user: dict = Depends(get_current_user)):
+    if not month:
+        now = datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    mission_stats, assignee_stats = crud.get_monthly_progress(month)
+    username_map = get_username_map()
+    return render_template("progress.html", request, user=user, month=month, mission_stats=mission_stats,
+                           assignee_stats=assignee_stats, username_map=username_map)

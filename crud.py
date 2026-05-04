@@ -46,15 +46,20 @@ def get_projects_for_mission(mission_id: str):
 def get_project(project_id: str):
     return supabase.table("projects").select("*").eq("id", project_id).single().execute().data
 
-def create_project(name: str, description: str | None, mission_id: str, user_id: str):
-    data = {"name": name, "description": description, "mission_id": mission_id}
+def create_project(name: str, description: str | None, mission_id: str, lead_id: str | None, user_id: str):
+    data = {
+        "name": name,
+        "description": description,
+        "mission_id": mission_id,
+        "lead_id": lead_id
+    }
     res = supabase.table("projects").insert(data).execute().data[0]
     log_action(user_id, "project_created", "project", res["id"], new_values=data)
     return res
 
-def update_project(project_id: str, name: str, description: str | None, user_id: str):
+def update_project(project_id: str, name: str, description: str | None, lead_id: str | None, user_id: str):
     old = get_project(project_id)
-    new_data = {"name": name, "description": description}
+    new_data = {"name": name, "description": description, "lead_id": lead_id}
     supabase.table("projects").update(new_data).eq("id", project_id).execute()
     log_action(user_id, "project_updated", "project", project_id, old_values=old, new_values=new_data)
 
@@ -99,10 +104,18 @@ def assign_task(task_id: str, assignee_id: str | None, user_id: str):
     supabase.table("tasks").update({"assignee_id": assignee_id}).eq("id", task_id).execute()
     log_action(user_id, "task_assigned", "task", task_id, old_values={"assignee_id": old["assignee_id"]}, new_values={"assignee_id": assignee_id})
 
+# ---------- Users ----------
+def get_all_users():
+    """Returns all profiles (id, role)."""
+    return supabase.table("profiles").select("id, role").execute().data
+
+def get_users_by_role(role: str):
+    """Return profiles with a specific role, including username and display_name."""
+    return supabase.table("profiles").select("id, role, username, display_name").eq("role", role).execute().data
+
 # ---------- Comments ----------
 def get_comments_for_task(task_id: str):
     res = supabase.table("comments").select("*").eq("task_id", task_id).order("created_at", desc=False).execute()
-    # Add user email by fetching from auth? We'll do a simple join later, for now just return as is.
     return res.data
 
 def add_comment(task_id: str, content: str, user_id: str):
@@ -111,14 +124,93 @@ def add_comment(task_id: str, content: str, user_id: str):
     log_action(user_id, "comment_added", "comment", res["id"], new_values=data)
     return res
 
-# ---------- Users (for assignment dropdown) ----------
-def get_all_users():
-    """Returns all profiles (id, role) joined with auth.users email."""
-    # We can't directly join auth.users via supabase-py? Use a raw SQL or just fetch profiles and then get emails via another query.
-    # For simplicity, just return profiles. We'll later map to email in the route if needed.
-    profiles = supabase.table("profiles").select("id, role").execute().data
-    # Get emails from auth.users using admin API? That requires service_role key. Instead, we'll use the admin API if available.
-    # We'll use a simple approach: for each profile, we'll get user by id using supabase.auth.admin.get_user_by_id (needs service_role).
-    # Since we might not have service_role, we'll store email in profiles later. For now, we'll just show id and role.
-    # Let's just return profiles and we'll display ID or add a note.
-    return profiles
+# ---------- Progress Reporting ----------
+def get_monthly_progress(month: str):
+    """
+    month: 'YYYY-MM' format.
+    Returns task completions for that month per mission, project, and assignee.
+    """
+    start_date = f"{month}-01T00:00:00Z"
+    # Calculate end month
+    year, mon = month.split("-")
+    y, m = int(year), int(mon)
+    if m == 12:
+        end_month = f"{y+1}-01"
+    else:
+        end_month = f"{y}-{m+1:02d}"
+    end_date = f"{end_month}-01T00:00:00Z"
+
+    # Completed in month
+    completed = supabase.table("tasks").select("*")\
+                .gte("updated_at", start_date)\
+                .lt("updated_at", end_date)\
+                .eq("status", "done").execute().data
+
+    all_tasks = supabase.table("tasks").select("*").execute().data
+    missions = supabase.table("missions").select("id, name").execute().data
+    projects = supabase.table("projects").select("id, name, mission_id").execute().data
+
+    # Build dicts
+    mission_stats = {}
+    for m in missions:
+        mission_stats[m["id"]] = {"name": m["name"], "projects": {}}
+    for p in projects:
+        mission_stats[p["mission_id"]]["projects"][p["id"]] = {"name": p["name"], "total": 0, "completed": 0}
+    for t in all_tasks:
+        pid = t["project_id"]
+        # find mission_id via project list
+        for p in projects:
+            if p["id"] == pid:
+                mid = p["mission_id"]
+                mission_stats[mid]["projects"][pid]["total"] += 1
+                break
+    for c in completed:
+        pid = c["project_id"]
+        for p in projects:
+            if p["id"] == pid:
+                mid = p["mission_id"]
+                mission_stats[mid]["projects"][pid]["completed"] += 1
+                break
+
+    # Per assignee completions
+    assignee_stats = {}
+    for c in completed:
+        aid = c["assignee_id"]
+        if aid:
+            assignee_stats[aid] = assignee_stats.get(aid, 0) + 1
+
+    return mission_stats, assignee_stats
+
+# ---------- Audit Logs ----------
+def get_audit_logs(limit=50, user_id=None, entity_type=None):
+    query = supabase.table("audit_logs").select("*").order("created_at", desc=True).limit(limit)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    if entity_type:
+        query = query.eq("entity_type", entity_type)
+    return query.execute().data
+
+# ---------- User creation (admin) ----------
+def create_user_by_admin(email: str, password: str, username: str, display_name: str, role: str, admin_id: str):
+    # 1. Create auth user in Supabase
+    try:
+        auth_res = supabase.auth.sign_up({"email": email, "password": password})
+        user_id = auth_res.user.id
+    except Exception as e:
+        raise Exception(f"Auth signup failed: {e}")
+
+    # 2. Update profile with username, display_name, and desired role
+    supabase.table("profiles").update({
+        "username": username,
+        "display_name": display_name,
+        "role": role
+    }).eq("id", user_id).execute()
+
+    # 3. Log it
+    log_action(admin_id, "user_created", "user", user_id,
+               new_values={"email": email, "username": username, "display_name": display_name, "role": role})
+    return user_id
+
+def get_all_users_detailed():
+    """Return all profiles with id, username, display_name, role, created_at."""
+    return supabase.table("profiles").select("id, username, display_name, role, created_at").order("created_at").execute().data

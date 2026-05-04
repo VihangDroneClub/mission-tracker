@@ -3,6 +3,7 @@
 {% block content %}
 <h1>Project: {{ project.name }}</h1>
 <p>{{ project.description }}</p>
+<p>Lead: {{ username_map.get(project.lead_id, 'None') }}</p>
 <p><a href="/missions/{{ project.mission_id }}">← Back to Mission</a></p>
 
 {% if user.role in ('lead', 'admin') %}
@@ -13,7 +14,7 @@
         <select name="assignee_id">
             <option value="">-- Unassigned --</option>
             {% for u in assignable_users %}
-                <option value="{{ u.id }}">{{ u.id }} ({{ u.role }})</option>
+                <option value="{{ u.id }}">{{ u.username or u.display_name or u.id }} ({{ u.role }})</option>
             {% endfor %}
         </select>
         <button type="submit">Add Task</button>
@@ -26,8 +27,8 @@
         <strong>{{ task.title }}</strong> 
         <span>[{{ task.status }}]</span>
         <a href="/tasks/{{ task.id }}">Details</a>
+        <small>Assignee: {{ username_map.get(task.assignee_id, 'Unassigned') }}</small>
         {% if user.role in ('lead', 'admin') %}
-            <!-- Status update buttons -->
             <form action="/tasks/{{ task.id }}/update-status" method="post" style="display:inline;">
                 {% if task.status == 'todo' %}
                     <input type="hidden" name="new_status" value="in_progress">
@@ -42,5 +43,4 @@
 {% else %}
     <p>No tasks yet.</p>
 {% endfor %}
-
 {% endblock %}

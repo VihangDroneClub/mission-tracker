@@ -2,11 +2,18 @@
 {% block title %}User Management{% endblock %}
 {% block content %}
 <h1>Users</h1>
-<table border="1">
-    <tr><th>User ID</th><th>Role</th><th>Change Role</th></tr>
+<a href="/admin/users/add">+ Add New User</a>
+<table border="1" style="margin-top: 10px;">
+    <tr>
+        <th>Username</th>
+        <th>Display Name</th>
+        <th>Role</th>
+        <th>Change Role</th>
+    </tr>
     {% for p in profiles %}
     <tr>
-        <td>{{ p.id }}</td>
+        <td>{{ p.username or 'No username' }}</td>
+        <td>{{ p.display_name or p.id }}</td>
         <td>{{ p.role }}</td>
         <td>
             <form action="/admin/users/{{ p.id }}/role" method="post">

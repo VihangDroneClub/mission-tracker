@@ -3,13 +3,19 @@
 {% block content %}
 <h1>{% if project %}Edit{% else %}Create{% endif %} Project</h1>
 <form method="post">
-    {% if mission_id %}
-        <input type="hidden" name="mission_id" value="{{ mission_id }}">
-    {% else %}
-        <input type="hidden" name="mission_id" value="{{ project.mission_id }}">
-    {% endif %}
-    <input type="text" name="name" placeholder="Project Name" required value="{{ project.name if project else '' }}">
-    <textarea name="description" placeholder="Description">{{ project.description if project else '' }}</textarea>
+    <input type="hidden" name="mission_id" value="{{ mission_id if mission_id else project.mission_id }}">
+    <label>Project name:<br><input type="text" name="name" required value="{{ project.name if project else '' }}"></label><br><br>
+    <label>Description:<br><textarea name="description">{{ project.description if project else '' }}</textarea></label><br><br>
+    <label>Lead:
+        <select name="lead_id">
+            <option value="">-- No lead --</option>
+            {% for lead in leads %}
+                <option value="{{ lead.id }}" {% if project and project.lead_id == lead.id %}selected{% endif %}>
+                    {{ lead.username or lead.id }} ({{ lead.role }})
+                </option>
+            {% endfor %}
+        </select>
+    </label><br><br>
     <button type="submit">Save</button>
 </form>
 {% endblock %}
