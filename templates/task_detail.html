@@ -45,18 +45,23 @@
 
 <!-- Comments Section -->
 <h2>Comments</h2>
-{% for comment in comments %}
-    <div style="border-left:3px solid #ccc; margin:5px; padding:5px;">
-        <small>{{ username_map.get(comment.user_id, 'Unknown') }} - {{ comment.created_at }}</small>
-        <p>{{ comment.content }}</p>
-    </div>
-{% else %}
-    <p>No comments yet.</p>
-{% endfor %}
+<div id="comments-list">
+    {% for comment in comments %}
+        <div style="border-left:3px solid #ccc; margin:5px; padding:5px;">
+            <small>{{ username_map.get(comment.user_id, 'Unknown') }} - {{ comment.created_at }}</small>
+            <p>{{ comment.content }}</p>
+        </div>
+    {% else %}
+        <p>No comments yet.</p>
+    {% endfor %}
+</div>
 
 {% if user.role in ('lead', 'admin') %}
     <h3>Add Comment</h3>
-    <form action="/tasks/{{ task.id }}/comment" method="post">
+    <form hx-post="/tasks/{{ task.id }}/comment" 
+          hx-target="#comments-list" 
+          hx-swap="beforeend" 
+          hx-on::after-request="this.reset()">
         <textarea name="content" required></textarea>
         <button type="submit">Post Comment</button>
     </form>

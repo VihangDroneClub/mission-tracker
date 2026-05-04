@@ -8,7 +8,10 @@
 
 {% if user.role in ('lead', 'admin') %}
     <h3>Add Task</h3>
-    <form action="/projects/{{ project.id }}/tasks/create" method="post">
+    <form hx-post="/projects/{{ project.id }}/tasks/create" 
+          hx-target="#task-list" 
+          hx-swap="innerHTML"
+          hx-on::after-request="this.reset()">
         <input type="text" name="title" placeholder="Task title" required>
         <input type="text" name="description" placeholder="Description">
         <select name="assignee_id">
@@ -22,32 +25,7 @@
 {% endif %}
 
 <h2>Tasks</h2>
-{% for task in tasks %}
-    <div style="border:1px solid #aaa; padding:8px; margin:5px;">
-        <strong>{{ task.title }}</strong> 
-        <span>[{{ task.status }}]</span>
-        <a href="/tasks/{{ task.id }}">Details</a>
-        <small>
-            Assignees: 
-            {% for a in task_assignees.get(task.id, []) %}
-                {{ a.username or a.display_name or a.id }}{% if not loop.last %}, {% endif %}
-            {% else %}
-                Unassigned
-            {% endfor %}
-        </small>
-        {% if user.role in ('lead', 'admin') %}
-            <form action="/tasks/{{ task.id }}/update-status" method="post" style="display:inline;">
-                {% if task.status == 'todo' %}
-                    <input type="hidden" name="new_status" value="in_progress">
-                    <button type="submit">Start Progress</button>
-                {% elif task.status == 'in_progress' %}
-                    <input type="hidden" name="new_status" value="done">
-                    <button type="submit">Mark Done</button>
-                {% endif %}
-            </form>
-        {% endif %}
-    </div>
-{% else %}
-    <p>No tasks yet.</p>
-{% endfor %}
+<div id="task-list">
+    {% include "_task_list.html" %}
+</div>
 {% endblock %}

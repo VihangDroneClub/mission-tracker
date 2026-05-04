@@ -133,7 +133,6 @@ async def project_detail(request: Request, project_id: str, user: dict = Depends
     tasks = crud.get_tasks_for_project(project_id)
     assignable_users = crud.get_all_users_detailed()
     username_map = get_username_map()
-    # Fetch assignees for each task
     task_assignees = {}
     for t in tasks:
         task_assignees[t["id"]] = crud.get_assignees(t["id"])
@@ -172,22 +171,36 @@ async def delete_project(project_id: str, user: dict = Depends(admin_required)):
 # ---------- Task operations ----------
 @app.post("/projects/{project_id}/tasks/create")
 async def add_task(request: Request, project_id: str, title: str = Form(...), description: str = Form(""),
-                   assignee_id: str = Form(None),   # optional initial assignee (for single‑selection during creation)
+                   assignee_id: str = Form(None),
                    user: dict = Depends(lead_or_admin_required)):
-    # Create task without assignee_id column
     new_task = crud.create_task(title, description, project_id, user["id"])
-    # If an initial assignee was provided, add to junction table
     if assignee_id:
         crud.assign_users_to_task(new_task["id"], [assignee_id], user["id"])
+    if request.headers.get("HX-Request") == "true":
+        tasks = crud.get_tasks_for_project(project_id)
+        task_assignees = {t["id"]: crud.get_assignees(t["id"]) for t in tasks}
+        username_map = get_username_map()
+        assignable_users = crud.get_all_users_detailed()
+        return HTMLResponse(env.get_template("_task_list.html").render(
+            tasks=tasks, task_assignees=task_assignees, username_map=username_map,
+            assignable_users=assignable_users, user=user
+        ))
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 @app.post("/tasks/{task_id}/update-status")
-async def update_task_status(task_id: str, new_status: str = Form(...), user: dict = Depends(lead_or_admin_required)):
+async def update_task_status(request: Request, task_id: str, new_status: str = Form(...),
+                             user: dict = Depends(lead_or_admin_required)):
     try:
         crud.update_task_status(task_id, new_status, user["id"])
-    except Exception as e:
+    except Exception:
         pass
     task = crud.get_task(task_id)
+    if request.headers.get("HX-Request") == "true":
+        task_assignees = {task["id"]: crud.get_assignees(task["id"])}
+        username_map = get_username_map()
+        return HTMLResponse(env.get_template("_task_card.html").render(
+            task=task, task_assignees=task_assignees, username_map=username_map, user=user
+        ))
     return RedirectResponse(url=f"/projects/{task['project_id']}", status_code=303)
 
 @app.post("/tasks/{task_id}/assign")
@@ -197,7 +210,7 @@ async def assign_task_endpoint(
     user: dict = Depends(lead_or_admin_required)
 ):
     form_data = await request.form()
-    assigned = form_data.getlist("assignee_ids")  # multi‑select list
+    assigned = form_data.getlist("assignee_ids")
     crud.assign_users_to_task(task_id, assigned, user["id"])
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
@@ -214,8 +227,18 @@ async def task_detail(request: Request, task_id: str, user: dict = Depends(get_c
 
 # ---------- Comments ----------
 @app.post("/tasks/{task_id}/comment")
-async def add_comment_endpoint(task_id: str, content: str = Form(...), user: dict = Depends(lead_or_admin_required)):
-    crud.add_comment(task_id, content, user["id"])
+async def add_comment_endpoint(request: Request, task_id: str, content: str = Form(...),
+                               user: dict = Depends(lead_or_admin_required)):
+    new_comment = crud.add_comment(task_id, content, user["id"])
+    if request.headers.get("HX-Request") == "true":
+        username_map = get_username_map()
+        comment_html = f"""
+        <div style="border-left:3px solid #ccc; margin:5px; padding:5px;">
+            <small>{username_map.get(user['id'], 'Unknown')} - {new_comment['created_at']}</small>
+            <p>{content}</p>
+        </div>
+        """
+        return HTMLResponse(comment_html)
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 # ---------- Advanced Search ----------
