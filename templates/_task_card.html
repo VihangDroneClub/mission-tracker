@@ -1,27 +1,39 @@
-<div style="border:1px solid #aaa; padding:8px; margin:5px;">
-    <strong>{{ task.title }}</strong> 
-    <span>[{{ task.status }}]</span>
-    <a href="/tasks/{{ task.id }}">Details</a>
-    <small>
-        Assignees: 
-        {% for a in task_assignees.get(task.id, []) %}
-            {{ a.username or a.display_name or a.id }}{% if not loop.last %}, {% endif %}
-        {% else %}
-            Unassigned
-        {% endfor %}
-    </small>
+<div data-task-id="{{ task.id }}" 
+     class="bg-white dark:bg-gray-700 rounded shadow-sm p-3 flex items-center justify-between gap-2 
+            {% if view == 'kanban' %}cursor-grab{% endif %}">
+    <div class="flex-1 min-w-0">
+        <div class="font-medium truncate">
+            <a href="/tasks/{{ task.id }}" class="hover:text-sky-600">{{ task.title }}</a>
+        </div>
+        <div class="flex flex-wrap items-center gap-1 mt-1 text-xs">
+            {{ priority_badge(task.priority) }}
+            {{ status_badge(task.status) }}
+            {{ due_pill(task.due_date) }}
+            <span class="text-gray-500">
+                Assignees: 
+                {% for a in task_assignees.get(task.id, []) %}
+                    {{ a.username or a.display_name or a.id }}{% if not loop.last %}, {% endif %}
+                {% else %}
+                    Unassigned
+                {% endfor %}
+            </span>
+        </div>
+    </div>
     {% if user.role in ('lead', 'admin') %}
+    <div class="flex-shrink-0">
         <form hx-post="/tasks/{{ task.id }}/update-status" 
-              hx-target="closest div" 
-              hx-swap="outerHTML" 
-              style="display:inline;">
-            {% if task.status == 'todo' %}
-                <input type="hidden" name="new_status" value="in_progress">
-                <button type="submit">Start Progress</button>
-            {% elif task.status == 'in_progress' %}
-                <input type="hidden" name="new_status" value="done">
-                <button type="submit">Mark Done</button>
-            {% endif %}
+              hx-target="closest [data-task-id]" 
+              hx-swap="outerHTML"
+              hx-trigger="change">
+            <select name="new_status" class="border rounded text-xs px-2 py-1 dark:bg-gray-600 dark:border-gray-500">
+                <option value="" disabled selected>Move...</option>
+                {% if task.status == 'todo' %}
+                    <option value="in_progress">Start</option>
+                {% elif task.status == 'in_progress' %}
+                    <option value="done">Done</option>
+                {% endif %}
+            </select>
         </form>
+    </div>
     {% endif %}
 </div>

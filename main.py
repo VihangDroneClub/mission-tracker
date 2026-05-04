@@ -219,11 +219,14 @@ async def delete_project(project_id: str, user: dict = Depends(admin_required)):
     return RedirectResponse(url=f"/missions/{mission_id}", status_code=303)
 
 # ---------- Task operations ----------
+
 @app.post("/projects/{project_id}/tasks/create")
-async def add_task(request: Request, project_id: str, title: str = Form(...), description: str = Form(""),
+async def add_task(request: Request, project_id: str, 
+                   title: str = Form(...), description: str = Form(""),
+                   priority: str = Form("medium"), due_date: str = Form(""),
                    assignee_id: str = Form(None),
                    user: dict = Depends(lead_or_admin_required)):
-    new_task = crud.create_task(title, description, project_id, user["id"])
+    new_task = crud.create_task(title, description, project_id, user["id"], priority=priority, due_date=due_date or None)
     if assignee_id:
         crud.assign_users_to_task(new_task["id"], [assignee_id], user["id"])
     if request.headers.get("HX-Request") == "true":

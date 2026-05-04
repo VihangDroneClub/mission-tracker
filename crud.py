@@ -75,12 +75,14 @@ def get_tasks_for_project(project_id: str):
 def get_task(task_id: str):
     return supabase.table("tasks").select("*").eq("id", task_id).single().execute().data
 
-def create_task(title: str, description: str | None, project_id: str, user_id: str):
-    """Create a task without an initial assignee (use assign_users_to_task afterwards)."""
+def create_task(title: str, description: str | None, project_id: str, user_id: str,
+                priority: str = "medium", due_date: str | None = None):
     data = {
         "title": title,
         "description": description,
         "project_id": project_id,
+        "priority": priority,
+        "due_date": due_date,
         "status": "todo"
     }
     res = supabase.table("tasks").insert(data).execute().data[0]

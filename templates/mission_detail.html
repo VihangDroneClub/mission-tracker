@@ -1,37 +1,59 @@
 {% extends "base.html" %}
+{% from "macros.html" import badge, empty_state with context %}
 {% block title %}{{ mission.name }}{% endblock %}
 {% block content %}
-<h1>Mission: {{ mission.name }}</h1>
-<p>{{ mission.description }}</p>
+<div class="mb-6">
+    <a href="/dashboard" class="text-sm text-gray-500 hover:text-sky-600">← Dashboard</a>
+</div>
 
-{% if user.role == 'admin' %}
-    <p>
-        <a href="/admin/missions/{{ mission.id }}/edit">Edit Mission</a>
-        <form action="/admin/missions/{{ mission.id }}/delete" method="post" style="display:inline;">
-            <button type="submit">Delete Mission</button>
-        </form>
-        <a href="/admin/projects/create?mission_id={{ mission.id }}">+ Add Project</a>
-    </p>
-{% elif user.role == 'lead' %}
-    <!-- Leads can't add projects, only tasks (in project detail) -->
-{% endif %}
-
-<h2>Projects</h2>
-<ul>
-{% for project in projects %}
-    <li>
-        <a href="/projects/{{ project.id }}">{{ project.name }}</a>
-        {% if user.role == 'admin' %}
-            <a href="/admin/projects/{{ project.id }}/edit">Edit</a>
-            <form action="/admin/projects/{{ project.id }}/delete" method="post" style="display:inline;">
-                <button type="submit">Delete</button>
-            </form>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold">{{ mission.name }}</h1>
+        {% if mission.description %}
+            <p class="text-gray-500 dark:text-gray-400 mt-1">{{ mission.description }}</p>
         {% endif %}
-    </li>
-{% else %}
-    <p>No projects yet.</p>
-{% endfor %}
-</ul>
+    </div>
+    {% if user.role == 'admin' %}
+    <div class="flex space-x-2 mt-2 sm:mt-0">
+        <a href="/admin/missions/{{ mission.id }}/edit" class="px-3 py-1.5 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">Edit</a>
+        <form action="/admin/missions/{{ mission.id }}/delete" method="post">
+            <button type="submit" class="px-3 py-1.5 border border-red-300 text-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-sm">Delete</button>
+        </form>
+        <a href="/admin/projects/create?mission_id={{ mission.id }}" class="px-3 py-1.5 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">+ Add Project</a>
+    </div>
+    {% endif %}
+</div>
 
-<p><a href="/dashboard">← Back to Dashboard</a></p>
+<h2 class="text-xl font-semibold mb-4">Projects</h2>
+
+{% if projects %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for project in projects %}
+        <div class="bg-white dark:bg-gray-800 rounded shadow p-4 relative">
+            <h3 class="font-semibold">
+                <a href="/projects/{{ project.id }}" class="hover:text-sky-600">{{ project.name }}</a>
+            </h3>
+            {% if project.description %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ project.description }}</p>
+            {% endif %}
+            <div class="mt-2 flex items-center space-x-2 text-xs">
+                {{ badge(project.lead_id or 'No lead', 'blue') }}
+            </div>
+            {% if user.role == 'admin' %}
+            <div class="absolute top-2 right-2" x-data="{ open: false }">
+                <button @click="open = !open" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">···</button>
+                <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-700 rounded shadow p-1 text-sm">
+                    <a href="/admin/projects/{{ project.id }}/edit" class="block px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">Edit</a>
+                    <form action="/admin/projects/{{ project.id }}/delete" method="post">
+                        <button type="submit" class="block w-full text-left px-2 py-1 text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% else %}
+    {{ empty_state('No projects in this mission yet.') }}
+{% endif %}
 {% endblock %}

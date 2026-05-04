@@ -1,31 +1,147 @@
 {% extends "base.html" %}
+{% from "macros.html" import badge, status_badge, priority_badge, due_pill, empty_state with context %}
 {% block title %}{{ project.name }}{% endblock %}
 {% block content %}
-<h1>Project: {{ project.name }}</h1>
-<p>{{ project.description }}</p>
-<p>Lead: {{ username_map.get(project.lead_id, 'None') }}</p>
-<p><a href="/missions/{{ project.mission_id }}">← Back to Mission</a></p>
+<div class="mb-4">
+    <a href="/missions/{{ project.mission_id }}" class="text-sm text-gray-500 hover:text-sky-600">← Back to Mission</a>
+</div>
 
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold">{{ project.name }}</h1>
+        {% if project.description %}
+            <p class="text-gray-500 dark:text-gray-400 mt-1">{{ project.description }}</p>
+        {% endif %}
+        <p class="text-sm text-gray-500 mt-1">Lead: {{ username_map.get(project.lead_id, 'None') }}</p>
+    </div>
+    {% if user.role in ('lead', 'admin') %}
+    <div class="mt-2 sm:mt-0">
+        <button @click="showAddTask = !showAddTask" class="px-3 py-1.5 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">+ Add Task</button>
+    </div>
+    {% endif %}
+</div>
+
+{# Add Task form (hidden by default) #}
 {% if user.role in ('lead', 'admin') %}
-    <h3>Add Task</h3>
-    <form hx-post="/projects/{{ project.id }}/tasks/create" 
-          hx-target="#task-list" 
+<div x-data="{ showAddTask: false }">
+    <form x-show="showAddTask" @click.away="showAddTask = false" 
+          hx-post="/projects/{{ project.id }}/tasks/create"
+          hx-target="#task-list,#kanban-todo"
           hx-swap="innerHTML"
-          hx-on::after-request="this.reset()">
-        <input type="text" name="title" placeholder="Task title" required>
-        <input type="text" name="description" placeholder="Description">
-        <select name="assignee_id">
-            <option value="">-- Initial assignee (optional) --</option>
-            {% for u in assignable_users %}
-                <option value="{{ u.id }}">{{ u.username or u.display_name or u.id }} ({{ u.role }})</option>
-            {% endfor %}
-        </select>
-        <button type="submit">Add Task</button>
+          class="bg-white dark:bg-gray-800 rounded shadow p-4 mb-6 space-y-3"
+          hx-on::after-request="this.reset(); showAddTask = false">
+        <input type="text" name="title" placeholder="Task title" required class="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600">
+        <input type="text" name="description" placeholder="Description" class="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600">
+        <div class="flex flex-wrap gap-2">
+            <select name="priority" class="border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600">
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="high">High</option>
+            </select>
+            <input type="date" name="due_date" class="border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600">
+            <select name="assignee_id" class="border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600">
+                <option value="">-- Initial assignee --</option>
+                {% for u in assignable_users %}
+                    <option value="{{ u.id }}">{{ u.username or u.display_name or u.id }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="px-3 py-1.5 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">Save Task</button>
     </form>
+</div>
 {% endif %}
 
-<h2>Tasks</h2>
-<div id="task-list">
-    {% include "_task_list.html" %}
+{# View toggle #}
+<div x-data="{ view: 'list' }" class="mb-4">
+    <div class="flex space-x-2 mb-4">
+        <button @click="view = 'list'" :class="view === 'list' ? 'bg-sky-600 text-white' : 'bg-gray-200 dark:bg-gray-700'" class="px-3 py-1 rounded text-sm">List</button>
+        <button @click="view = 'kanban'" :class="view === 'kanban' ? 'bg-sky-600 text-white' : 'bg-gray-200 dark:bg-gray-700'" class="px-3 py-1 rounded text-sm">Kanban</button>
+    </div>
+
+    {# List view #}
+    <div x-show="view === 'list'">
+        <div id="task-list">
+            {% include "_task_list.html" %}
+        </div>
+    </div>
+
+    {# Kanban view #}
+    <div x-show="view === 'kanban'" class="grid grid-cols-1 md:grid-cols-3 gap-4" x-data="kanban()">
+        {% set statuses = ['todo', 'in_progress', 'done'] %}
+        {% set status_labels = {'todo': 'To Do', 'in_progress': 'In Progress', 'done': 'Done'} %}
+        {% for status in statuses %}
+        <div class="bg-gray-100 dark:bg-gray-800 rounded p-3" 
+             data-status="{{ status }}"
+             x-ref="column{{ loop.index }}">
+            <h3 class="font-semibold mb-2 flex items-center justify-between">
+                {{ status_labels[status] }}
+                <span class="text-xs text-gray-500">{{ tasks|selectattr('status','equalto',status)|list|length }}</span>
+            </h3>
+            <div id="kanban-{{ status }}" class="space-y-2 min-h-[100px]">
+                {% for task in tasks if task.status == status %}
+                    {% include "_task_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function kanban() {
+        return {
+            init() {
+                const self = this;
+                this.$nextTick(() => {
+                    const columns = this.$el.querySelectorAll('[data-status]');
+                    columns.forEach(col => {
+                        const status = col.dataset.status;
+                        const kanbanList = col.querySelector(`#kanban-${status}`);
+                        if (kanbanList) {
+                            new Sortable(kanbanList, {
+                                group: 'tasks',
+                                animation: 150,
+                                onEnd: function(evt) {
+                                    const taskId = evt.item.querySelector('[data-task-id]')?.dataset.taskId;
+                                    const newStatus = evt.to.closest('[data-status]')?.dataset.status;
+                                    if (taskId && newStatus) {
+                                        // Send status update via fetch (HTMX-like but we need to update UI too)
+                                        fetch(`/tasks/${taskId}/update-status`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                            body: `new_status=${newStatus}`
+                                        })
+                                        .then(res => res.text())
+                                        .then(html => {
+                                            // Replace the card with the updated one (HTMX response)
+                                            const temp = document.createElement('div');
+                                            temp.innerHTML = html;
+                                            const newCard = temp.firstElementChild;
+                                            evt.item.replaceWith(newCard);
+                                            // Re-initialize the count badge
+                                            updateCounters();
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    // Initial counters
+                    updateCounters();
+                });
+            }
+        };
+    }
+    function updateCounters() {
+        document.querySelectorAll('[data-status]').forEach(col => {
+            const status = col.dataset.status;
+            const count = col.querySelectorAll(`#kanban-${status} > div`).length;
+            const badge = col.querySelector('span.text-xs');
+            if (badge) badge.textContent = count;
+        });
+    }
+</script>
 {% endblock %}
