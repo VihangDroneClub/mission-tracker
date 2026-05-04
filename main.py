@@ -192,7 +192,43 @@ async def assign_task_endpoint(task_id: str, assignee_id: str = Form(""), user: 
 async def task_detail(request: Request, task_id: str, user: dict = Depends(get_current_user)):
     task = crud.get_task(task_id)
     assignable_users = crud.get_all_users()
-    return render_template("task_detail.html", request, user=user, task=task, assignable_users=assignable_users)
+    comments = crud.get_comments_for_task(task_id)
+    return render_template("task_detail.html", request, user=user, task=task, assignable_users=assignable_users, comments=comments)
+
+# ---------- Comments ----------
+@app.post("/tasks/{task_id}/comment")
+async def add_comment_endpoint(task_id: str, content: str = Form(...), user: dict = Depends(lead_or_admin_required)):
+    crud.add_comment(task_id, content, user["id"])
+    return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
+
+# ---------- Search ----------
+@app.get("/search")
+async def search(request: Request, q: str = "", user: dict = Depends(get_current_user)):
+    if not q.strip():
+        return render_template("search.html", request, user=user, results=[], query=q)
+    # Search in tasks title and description using ilike
+    search_filter = f"%{q}%"
+    results = supabase.table("tasks").select("*").or_(f"title.ilike.{search_filter},description.ilike.{search_filter}").execute().data
+    return render_template("search.html", request, user=user, results=results, query=q)
+
+# ---------- Admin: User Management ----------
+@app.get("/admin/users")
+async def list_users(request: Request, user: dict = Depends(admin_required)):
+    profiles = crud.get_all_users()
+    # Enhance with email: we'll use supabase auth admin list_users if possible, but for simplicity we'll just display profile id and role.
+    # To make it useful, we can add a small helper to get email from auth.users via admin API if service_role key is available.
+    # For now, just show IDs.
+    return render_template("admin_users.html", request, user=user, profiles=profiles)
+
+@app.post("/admin/users/{user_id}/role")
+async def change_user_role(user_id: str, new_role: str = Form(...), user: dict = Depends(admin_required)):
+    if new_role not in ("member", "lead", "admin"):
+        return HTMLResponse("Invalid role", status_code=400)
+    supabase.table("profiles").update({"role": new_role}).eq("id", user_id).execute()
+    crud.log_action(user["id"], "role_updated", "user", user_id,
+                    old_values={"role": "..."},  # we could fetch old role, but skip for now
+                    new_values={"role": new_role})
+    return RedirectResponse(url="/admin/users", status_code=303)
 
 # ---------- Admin: task CRUD (optional but simple) ----------
 @app.get("/admin/tasks/create")

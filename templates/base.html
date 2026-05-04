@@ -10,6 +10,7 @@
         <a href="/dashboard">Dashboard</a>
         {% if user %}
             | Logged in as {{ user.email }} ({{ user.role }})
+            | <a href="/search">Search</a>
             {% if user.role == 'admin' %}
                 | <a href="/admin/missions/create">New Mission</a>
                 | <a href="/admin/users">Manage Users</a>

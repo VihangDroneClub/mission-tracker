@@ -99,6 +99,18 @@ def assign_task(task_id: str, assignee_id: str | None, user_id: str):
     supabase.table("tasks").update({"assignee_id": assignee_id}).eq("id", task_id).execute()
     log_action(user_id, "task_assigned", "task", task_id, old_values={"assignee_id": old["assignee_id"]}, new_values={"assignee_id": assignee_id})
 
+# ---------- Comments ----------
+def get_comments_for_task(task_id: str):
+    res = supabase.table("comments").select("*").eq("task_id", task_id).order("created_at", desc=False).execute()
+    # Add user email by fetching from auth? We'll do a simple join later, for now just return as is.
+    return res.data
+
+def add_comment(task_id: str, content: str, user_id: str):
+    data = {"task_id": task_id, "user_id": user_id, "content": content}
+    res = supabase.table("comments").insert(data).execute().data[0]
+    log_action(user_id, "comment_added", "comment", res["id"], new_values=data)
+    return res
+
 # ---------- Users (for assignment dropdown) ----------
 def get_all_users():
     """Returns all profiles (id, role) joined with auth.users email."""
