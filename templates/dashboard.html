@@ -1,24 +1,67 @@
 {% extends "base.html" %}
+{% from "macros.html" import badge, status_badge, empty_state with context %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<h1>Dashboard</h1>
+
+{# Stat cards #}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
+        <div class="text-sm text-gray-500 dark:text-gray-400">Missions</div>
+        <div class="text-3xl font-bold">{{ missions|length }}</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
+        <div class="text-sm text-gray-500 dark:text-gray-400">Tasks</div>
+        <div class="text-3xl font-bold">{{ missions|sum(attribute='mission_count') if missions else 0 }}</div>
+    </div>
+    {# You can compute overdue count later — for now placeholder #}
+    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
+        <div class="text-sm text-gray-500 dark:text-gray-400">Overdue</div>
+        <div class="text-3xl font-bold text-red-500">0</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
+        <div class="text-sm text-gray-500 dark:text-gray-400">Done This Month</div>
+        <div class="text-3xl font-bold text-green-500">0</div>
+    </div>
+</div>
+
+{# Admin quick action #}
 {% if user.role == 'admin' %}
-    <p><a href="/admin/missions/create">+ Create New Mission</a></p>
+<div class="mb-4">
+    <a href="/admin/missions/create" class="inline-block bg-sky-600 text-white px-4 py-2 rounded hover:bg-sky-700">+ New Mission</a>
+</div>
 {% endif %}
 
-{% for item in missions %}
-    <div style="border:1px solid #ccc; margin:10px; padding:10px;">
-        <h3><a href="/missions/{{ item.mission.id }}">{{ item.mission.name }}</a></h3>
-        <p>{{ item.mission.description }}</p>
-        <small>{{ item.project_count }} projects, {{ item.task_count }} tasks</small>
-        {% if user.role == 'admin' %}
-            <div>
-                <a href="/admin/missions/{{ item.mission.id }}/edit">Edit</a>
-                <form action="/admin/missions/{{ item.mission.id }}/delete" method="post" style="display:inline;">
-                    <button type="submit">Delete</button>
-                </form>
+{# Missions grid #}
+{% if missions %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for item in missions %}
+        <div class="bg-white dark:bg-gray-800 rounded shadow p-4 relative">
+            <h2 class="text-lg font-semibold mb-1">
+                <a href="/missions/{{ item.mission.id }}" class="hover:text-sky-600">{{ item.mission.name }}</a>
+            </h2>
+            {% if item.mission.description %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ item.mission.description }}</p>
+            {% endif %}
+            <div class="flex space-x-2 text-xs">
+                {{ badge(item.project_count ~ ' projects', 'blue') }}
+                {{ badge(item.task_count ~ ' tasks', 'gray') }}
             </div>
-        {% endif %}
-    </div>
-{% endfor %}
+            {% if user.role == 'admin' %}
+            <div class="absolute top-2 right-2" x-data="{ open: false }">
+                <button @click="open = !open" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">···</button>
+                <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-700 rounded shadow p-1 text-sm">
+                    <a href="/admin/missions/{{ item.mission.id }}/edit" class="block px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">Edit</a>
+                    <form action="/admin/missions/{{ item.mission.id }}/delete" method="post">
+                        <button type="submit" class="block w-full text-left px-2 py-1 text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% else %}
+    {{ empty_state('No missions yet. Create one to get started!') }}
+{% endif %}
+
 {% endblock %}

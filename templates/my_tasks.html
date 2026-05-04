@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, status_badge, due_pill, priority_badge, empty_state with context %}
+{% block title %}My Tasks{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">My Tasks</h1>
+
+{% for title, task_list in groups %}
+    {% if task_list %}
+    <div x-data="{ open: true }" class="mb-6">
+        <button @click="open = !open" class="text-lg font-semibold flex items-center space-x-2 mb-2">
+            <span x-show="open">▼</span>
+            <span x-show="!open" x-cloak>▶</span>
+            <span>{{ title }}</span>
+            <span class="text-sm text-gray-500">({{ task_list|length }})</span>
+        </button>
+        <div x-show="open" class="space-y-2">
+            {% for task in task_list %}
+                <div class="bg-white dark:bg-gray-800 rounded shadow p-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <a href="/tasks/{{ task.id }}" class="font-medium hover:text-sky-600">{{ task.title }}</a>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ task._mission_name }} / {{ task._project_name }}
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        {{ priority_badge(task.priority) }}
+                        {{ status_badge(task.status) }}
+                        {{ due_pill(task.due_date) }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+
+{% if not groups[0][1] and not groups[1][1] and not groups[2][1] and not groups[3][1] and not groups[4][1] %}
+    {{ empty_state('You have no tasks assigned yet.') }}
+{% endif %}
+{% endblock %}

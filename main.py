@@ -16,9 +16,11 @@ BASE_DIR = Path(__file__).resolve().parent
 app = FastAPI(title="Mission Tracker")
 env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")), autoescape=True)
 
+from datetime import date, datetime  # make sure both are imported
+
 def render_template(template_name: str, request: Request, **kwargs) -> HTMLResponse:
     template = env.get_template(template_name)
-    html_content = template.render(request=request, **kwargs)
+    html_content = template.render(request=request, today=date.today(), **kwargs)
     return HTMLResponse(html_content)
 
 def get_username_map():
@@ -93,6 +95,54 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
             "task_count": task_count
         })
     return render_template("dashboard.html", request, user=user, missions=mission_stats)
+
+# ---------- My Tasks (personal inbox) ----------
+@app.get("/my-tasks")
+async def my_tasks(request: Request, user: dict = Depends(get_current_user)):
+    """Show all tasks assigned to the current user, grouped by status / due date."""
+    tasks = crud.get_tasks_for_user(user["id"])
+    username_map = get_username_map()
+
+    # Separate overdue, today, this week, upcoming, no due date
+    today = date.today()
+    overdue = []
+    due_today = []
+    due_this_week = []
+    upcoming = []
+    no_due = []
+
+    for t in tasks:
+        proj = crud.get_project(t["project_id"])
+        mission = crud.get_mission(proj["mission_id"])
+        t["_project_name"] = proj["name"]
+        t["_mission_name"] = mission["name"]
+
+        if t.get("due_date"):
+            try:
+                due = date.fromisoformat(t["due_date"])
+                diff = (due - today).days
+                if diff < 0:
+                    overdue.append(t)
+                elif diff == 0:
+                    due_today.append(t)
+                elif diff <= 7:
+                    due_this_week.append(t)
+                else:
+                    upcoming.append(t)
+            except:
+                no_due.append(t)
+        else:
+            no_due.append(t)
+
+    groups = [
+        ("Overdue", overdue),
+        ("Due Today", due_today),
+        ("Due This Week", due_this_week),
+        ("Upcoming", upcoming),
+        ("No Due Date", no_due),
+    ]
+
+    return render_template("my_tasks.html", request, user=user, groups=groups, username_map=username_map)
 
 # ---------- Mission detail ----------
 @app.get("/missions/{mission_id}")
