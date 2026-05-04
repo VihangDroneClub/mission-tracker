@@ -133,7 +133,7 @@ async def project_detail(request: Request, project_id: str, user: dict = Depends
     tasks = crud.get_tasks_for_project(project_id)
     assignable_users = crud.get_all_users_detailed()
     username_map = get_username_map()
-    # Fetch assignees for all tasks
+    # Fetch assignees for each task
     task_assignees = {}
     for t in tasks:
         task_assignees[t["id"]] = crud.get_assignees(t["id"])
@@ -171,13 +171,14 @@ async def delete_project(project_id: str, user: dict = Depends(admin_required)):
 
 # ---------- Task operations ----------
 @app.post("/projects/{project_id}/tasks/create")
-async def add_task(request: Request, project_id: str, title: str = Form(...), description: str = Form(""), assignee_id: str = Form(None),
+async def add_task(request: Request, project_id: str, title: str = Form(...), description: str = Form(""),
+                   assignee_id: str = Form(None),   # optional initial assignee (for single‑selection during creation)
                    user: dict = Depends(lead_or_admin_required)):
-    assignee = assignee_id if assignee_id else None
-    new_task = crud.create_task(title, description, project_id, assignee, user["id"])
-    # If assignee provided, add to junction table
-    if assignee:
-        crud.assign_users_to_task(new_task["id"], [assignee], user["id"])
+    # Create task without assignee_id column
+    new_task = crud.create_task(title, description, project_id, user["id"])
+    # If an initial assignee was provided, add to junction table
+    if assignee_id:
+        crud.assign_users_to_task(new_task["id"], [assignee_id], user["id"])
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 @app.post("/tasks/{task_id}/update-status")
@@ -192,13 +193,11 @@ async def update_task_status(task_id: str, new_status: str = Form(...), user: di
 @app.post("/tasks/{task_id}/assign")
 async def assign_task_endpoint(
     task_id: str,
-    request: Request,  # need to read form list
+    request: Request,
     user: dict = Depends(lead_or_admin_required)
 ):
-    # Get selected user IDs as a list from the form
     form_data = await request.form()
-    # The multi-select will send multiple values with the same name "assignee_ids"
-    assigned = form_data.getlist("assignee_ids")  # returns list of strings
+    assigned = form_data.getlist("assignee_ids")  # multi‑select list
     crud.assign_users_to_task(task_id, assigned, user["id"])
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
@@ -208,7 +207,7 @@ async def task_detail(request: Request, task_id: str, user: dict = Depends(get_c
     assignable_users = crud.get_all_users_detailed()
     comments = crud.get_comments_for_task(task_id)
     username_map = get_username_map()
-    assignees = crud.get_assignees(task_id)  # list of profiles
+    assignees = crud.get_assignees(task_id)
     return render_template("task_detail.html", request, user=user, task=task,
                            assignable_users=assignable_users, comments=comments,
                            username_map=username_map, assignees=assignees)
@@ -231,14 +230,12 @@ async def search(
     end_month: str = "",
     user: dict = Depends(get_current_user)
 ):
-    # Dropdown data
     missions = crud.get_all_missions()
     mission_id_val = mission_id if mission_id else None
     projects = []
     if mission_id_val:
         projects = crud.get_projects_for_mission(mission_id_val)
 
-    # Build query
     query = supabase.table("tasks").select("*")
     
     if q.strip():

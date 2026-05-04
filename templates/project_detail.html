@@ -12,7 +12,7 @@
         <input type="text" name="title" placeholder="Task title" required>
         <input type="text" name="description" placeholder="Description">
         <select name="assignee_id">
-            <option value="">-- Unassigned --</option>
+            <option value="">-- Initial assignee (optional) --</option>
             {% for u in assignable_users %}
                 <option value="{{ u.id }}">{{ u.username or u.display_name or u.id }} ({{ u.role }})</option>
             {% endfor %}
@@ -27,13 +27,14 @@
         <strong>{{ task.title }}</strong> 
         <span>[{{ task.status }}]</span>
         <a href="/tasks/{{ task.id }}">Details</a>
-        <small>Assignees: 
-    {% for a in task_assignees.get(task.id, []) %}
-        {{ a.username or a.display_name or a.id }}{% if not loop.last %}, {% endif %}
-    {% else %}
-        Unassigned
-    {% endfor %}
-</small>
+        <small>
+            Assignees: 
+            {% for a in task_assignees.get(task.id, []) %}
+                {{ a.username or a.display_name or a.id }}{% if not loop.last %}, {% endif %}
+            {% else %}
+                Unassigned
+            {% endfor %}
+        </small>
         {% if user.role in ('lead', 'admin') %}
             <form action="/tasks/{{ task.id }}/update-status" method="post" style="display:inline;">
                 {% if task.status == 'todo' %}
