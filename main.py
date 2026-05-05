@@ -27,7 +27,8 @@ def render_template(template_name: str, request: Request, **kwargs) -> HTMLRespo
 
 def get_username_map():
     users = crud.get_all_users_detailed()
-    return {u["id"]: u["username"] or u["display_name"] or u["id"] for u in users}
+    # Prioritize Display Name, then vhng_xxxx (username), then 'Member'
+    return {u["id"]: u["display_name"] or u["username"] or "Member" for u in users}
 
 # ---------- Public / test routes ----------
 @app.get("/")
@@ -394,12 +395,12 @@ async def add_user_form(request: Request, user: dict = Depends(admin_required)):
 @app.post("/admin/users/add")
 async def add_user_action(request: Request,
                           email: str = Form(...), password: str = Form(...),
-                          username: str = Form(...), display_name: str = Form(...),
+                          display_name: str = Form(...),
                           role: str = Form(...), user: dict = Depends(admin_required)):
     if role not in ("member", "lead", "admin"):
         return HTMLResponse("Invalid role", status_code=400)
     try:
-        crud.create_user_by_admin(email, password, username, display_name, role, user["id"])
+        crud.create_user_by_admin(email, password, display_name, role, user["id"])
     except Exception as e:
         return render_template("admin_add_user.html", request, user=user, error=str(e))
     return RedirectResponse(url="/admin/users", status_code=303)

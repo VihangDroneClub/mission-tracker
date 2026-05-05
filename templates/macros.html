@@ -52,7 +52,7 @@
         </div>
     {% else %}
         <div class="w-{{ size }} h-{{ size }} bg-slate-900 border border-brand-500 text-brand-500 flex items-center justify-center font-mono text-xs font-bold shadow-[0_0_5px_rgba(0,240,255,0.3)]">
-            {{ (profile.display_name or profile.username or '?')[:1].upper() }}
+            {{ (profile.display_name or profile.username or 'M')[:1].upper() }}
         </div>
     {% endif %}
 {% endmacro %}

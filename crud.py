@@ -167,7 +167,23 @@ def get_users_by_role(role: str):
 def get_all_users_detailed():
     return supabase.table("profiles").select("id, username, display_name, role, created_at").order("created_at").execute().data
 
-def create_user_by_admin(email: str, password: str, username: str, display_name: str, role: str, admin_id: str):
+def get_next_member_id():
+    users = get_all_users_detailed()
+    ids = []
+    for u in users:
+        uname = u.get("username")
+        if uname and uname.startswith("vhng_"):
+            try:
+                # Handle both 3 and 4 digit versions if they exist
+                num_part = uname.split("_")[1]
+                ids.append(int(num_part))
+            except:
+                pass
+    next_num = max(ids) + 1 if ids else 0
+    return f"vhng_{next_num:04d}"
+
+def create_user_by_admin(email: str, password: str, display_name: str, role: str, admin_id: str):
+    username = get_next_member_id()
     try:
         auth_res = supabase_admin.auth.admin.create_user({
             "email": email,

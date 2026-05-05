@@ -21,8 +21,8 @@
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700">
-                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Member</th>
-                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Username</th>
+                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Member Name</th>
+                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Member ID</th>
                     <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Role Status</th>
                     <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Actions</th>
                 </tr>
@@ -34,13 +34,12 @@
                         <div class="flex items-center gap-4">
                             {{ avatar(p, size=10) }}
                             <div>
-                                <p class="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{{ p.display_name or p.id[:8] }}</p>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {{ p.id[:8] }}...</span>
+                                <p class="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{{ p.display_name or 'No name set' }}</p>
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-5">
-                        <span class="text-sm font-medium text-slate-600 dark:text-slate-400">{{ p.username or 'No username set' }}</span>
+                        <span class="text-sm font-bold text-brand-600 dark:text-brand-400 font-mono">{{ p.username or 'PENDING' }}</span>
                     </td>
                     <td class="px-6 py-5">
                         {% if p.role == 'admin' %}
