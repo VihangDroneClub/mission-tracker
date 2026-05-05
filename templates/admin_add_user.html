@@ -1,22 +1,76 @@
 {% extends "base.html" %}
-{% block title %}Add User{% endblock %}
+
+{% block title %}Add User - Mission Tracker{% endblock %}
+
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Add New User</h1>
-{% if error %}<p class="text-red-500 mb-4">{{ error }}</p>{% endif %}
-<form method="post" class="max-w-lg space-y-4">
-    <input type="email" name="email" placeholder="Email" required
-           class="border rounded px-3 py-2 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-    <input type="password" name="password" placeholder="Password" required
-           class="border rounded px-3 py-2 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-    <input type="text" name="username" placeholder="Username (e.g. vhng_001)" required
-           class="border rounded px-3 py-2 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-    <input type="text" name="display_name" placeholder="Display Name" required
-           class="border rounded px-3 py-2 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-    <select name="role" class="border rounded px-3 py-2 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        <option value="member">Member</option>
-        <option value="lead">Lead</option>
-        <option value="admin">Admin</option>
-    </select>
-    <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700">Create User</button>
-</form>
+<div class="mb-8">
+    <a href="/admin/users" class="inline-flex items-center text-sm font-bold text-slate-500 hover:text-brand-600 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Back to Users
+    </a>
+</div>
+
+<div class="max-w-2xl mx-auto">
+    <div class="mb-10 text-center">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Add New User</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-2">Provision a new account for a club member or administrator.</p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        {% if error %}
+            <div class="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-sm font-medium rounded-xl border border-rose-100 dark:border-rose-800/30 flex items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <form method="post" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Email Address</label>
+                    <input type="email" name="email" placeholder="pilot@vihang.com" required
+                           class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Initial Password</label>
+                    <input type="password" name="password" placeholder="••••••••" required
+                           class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Unique Username</label>
+                    <input type="text" name="username" placeholder="vhng_007" required
+                           class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Full Display Name</label>
+                    <input type="text" name="display_name" placeholder="John Doe" required
+                           class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Assign Role</label>
+                <div class="grid grid-cols-3 gap-3">
+                    {% for role in [('member', 'Member'), ('lead', 'Lead'), ('admin', 'Admin')] %}
+                    <label class="cursor-pointer group">
+                        <input type="radio" name="role" value="{{ role[0] }}" class="peer hidden" {% if loop.first %}checked{% endif %}>
+                        <div class="w-full text-center py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-500 border-2 border-transparent peer-checked:border-brand-500 peer-checked:bg-brand-50 dark:peer-checked:bg-brand-900/20 peer-checked:text-brand-600 transition-all">
+                            <span class="text-xs font-bold">{{ role[1] }}</span>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="pt-6">
+                <button type="submit" class="w-full py-4 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700 shadow-xl shadow-brand-600/20 transition-all active:scale-[0.98]">
+                    Provision Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

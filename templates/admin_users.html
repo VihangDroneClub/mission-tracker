@@ -1,38 +1,89 @@
 {% extends "base.html" %}
-{% block title %}User Management{% endblock %}
-{% block content %}
-<h1 class="text-2xl font-bold mb-4">Users</h1>
-<a href="/admin/users/add" class="inline-block mb-4 px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700">+ Add New User</a>
+{% from "macros.html" import avatar, badge with context %}
 
-<div class="overflow-x-auto">
-    <table class="w-full border-collapse">
-        <thead>
-            <tr class="bg-gray-100 dark:bg-gray-800">
-                <th class="px-4 py-2 text-left">Username</th>
-                <th class="px-4 py-2 text-left">Display Name</th>
-                <th class="px-4 py-2 text-left">Role</th>
-                <th class="px-4 py-2 text-left">Change Role</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in profiles %}
-            <tr class="border-b dark:border-gray-700">
-                <td class="px-4 py-2">{{ p.username or 'No username' }}</td>
-                <td class="px-4 py-2">{{ p.display_name or p.id }}</td>
-                <td class="px-4 py-2">{{ p.role }}</td>
-                <td class="px-4 py-2">
-                    <form action="/admin/users/{{ p.id }}/role" method="post" class="flex gap-2">
-                        <select name="new_role" class="border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="member" {% if p.role == 'member' %}selected{% endif %}>Member</option>
-                            <option value="lead" {% if p.role == 'lead' %}selected{% endif %}>Lead</option>
-                            <option value="admin" {% if p.role == 'admin' %}selected{% endif %}>Admin</option>
-                        </select>
-                        <button type="submit" class="px-3 py-1 bg-sky-600 text-white rounded text-sm hover:bg-sky-700">Update</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% block title %}User Management - Mission Tracker{% endblock %}
+
+{% block content %}
+<div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">User Management</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Manage club members, access levels, and roles.</p>
+    </div>
+    
+    <a href="/admin/users/add" class="inline-flex items-center px-5 py-2.5 rounded-xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 active:scale-95">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+        Add New User
+    </a>
+</div>
+
+<div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700">
+                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Member</th>
+                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Username</th>
+                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Role Status</th>
+                    <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                {% for p in profiles %}
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                    <td class="px-6 py-5">
+                        <div class="flex items-center gap-4">
+                            {{ avatar(p, size=10) }}
+                            <div>
+                                <p class="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{{ p.display_name or p.id[:8] }}</p>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {{ p.id[:8] }}...</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-5">
+                        <span class="text-sm font-medium text-slate-600 dark:text-slate-400">{{ p.username or 'No username set' }}</span>
+                    </td>
+                    <td class="px-6 py-5">
+                        {% if p.role == 'admin' %}
+                            {{ badge('Admin', 'red') }}
+                        {% elif p.role == 'lead' %}
+                            {{ badge('Lead', 'blue') }}
+                        {% else %}
+                            {{ badge('Member', 'gray') }}
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-5 text-right">
+                        <div x-data="{ open: false }" class="relative inline-block text-left">
+                            <button @click="open = !open" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all focus:outline-none">
+                                Change Role
+                            </button>
+                            
+                            <div x-show="open" 
+                                 x-cloak
+                                 @click.away="open = false" 
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="opacity-0 scale-95"
+                                 x-transition:enter-end="opacity-100 scale-100"
+                                 class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-10 p-2">
+                                <form action="/admin/users/{{ p.id }}/role" method="post" class="space-y-1">
+                                    {% for role in ['member', 'lead', 'admin'] %}
+                                    <button type="submit" name="new_role" value="{{ role }}" 
+                                            class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all
+                                            {% if p.role == role %}
+                                                bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400
+                                            {% else %}
+                                                text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800
+                                            {% endif %}">
+                                        {{ role|capitalize }}
+                                    </button>
+                                    {% endfor %}
+                                </form>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

@@ -405,7 +405,8 @@ async def add_user_action(request: Request,
 @app.get("/admin/audit-log")
 async def audit_log_view(request: Request, user: dict = Depends(admin_required)):
     logs = crud.get_audit_logs(limit=100)
-    return render_template("audit_log.html", request, user=user, logs=logs)
+    username_map = get_username_map()
+    return render_template("audit_log.html", request, user=user, logs=logs, username_map=username_map)
 
 # ---------- Progress Dashboard ----------
 @app.get("/progress")

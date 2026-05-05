@@ -1,59 +1,135 @@
 {% extends "base.html" %}
 {% from "macros.html" import badge, status_badge, empty_state with context %}
+
 {% block title %}Dashboard{% endblock %}
+
 {% block content %}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
-        <div class="text-sm text-gray-500 dark:text-gray-400">Missions</div>
-        <div class="text-3xl font-bold">{{ missions|length }}</div>
+<div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Overview of all active drone missions and operations.</p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
-        <div class="text-sm text-gray-500 dark:text-gray-400">Tasks</div>
-        <div class="text-3xl font-bold">{{ missions|sum(attribute='task_count') if missions else 0 }}</div>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
-        <div class="text-sm text-gray-500 dark:text-gray-400">Overdue</div>
-        <div class="text-3xl font-bold text-red-500">0</div>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded shadow p-4">
-        <div class="text-sm text-gray-500 dark:text-gray-400">Done This Month</div>
-        <div class="text-3xl font-bold text-green-500">0</div>
-    </div>
+    {% if user.role == 'admin' %}
+    <a href="/admin/missions/create" class="inline-flex items-center px-5 py-2.5 rounded-xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 active:scale-95">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        New Mission
+    </a>
+    {% endif %}
 </div>
-{% if user.role == 'admin' %}
-<div class="mb-4">
-    <a href="/admin/missions/create" class="inline-block bg-sky-600 text-white px-4 py-2 rounded hover:bg-sky-700">+ New Mission</a>
-</div>
-{% endif %}
-{% if missions %}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {% for item in missions %}
-        <div class="bg-white dark:bg-gray-800 rounded shadow p-4 relative">
-            <h2 class="text-lg font-semibold mb-1">
-                <a href="/missions/{{ item.mission.id }}" class="hover:text-sky-600">{{ item.mission.name }}</a>
-            </h2>
-            {% if item.mission.description %}
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ item.mission.description }}</p>
-            {% endif %}
-            <div class="flex space-x-2 text-xs">
-                {{ badge(item.project_count ~ ' projects', 'blue') }}
-                {{ badge(item.task_count ~ ' tasks', 'gray') }}
+
+<!-- Stat Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    <!-- Stat Card: Missions -->
+    <div class="bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 bg-brand-50 dark:bg-brand-900/20 rounded-xl flex items-center justify-center text-brand-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
             </div>
-            {% if user.role == 'admin' %}
-            <div class="absolute top-2 right-2" x-data="{ open: false }">
-                <button @click="open = !open" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">···</button>
-                <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-700 rounded shadow p-1 text-sm">
-                    <a href="/admin/missions/{{ item.mission.id }}/edit" class="block px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">Edit</a>
-                    <form action="/admin/missions/{{ item.mission.id }}/delete" method="post">
-                        <button type="submit" class="block w-full text-left px-2 py-1 text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">Delete</button>
-                    </form>
+            <span class="text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-lg">Active</span>
+        </div>
+        <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Missions</div>
+        <div class="text-3xl font-bold mt-1 text-slate-900 dark:text-white">{{ missions|length }}</div>
+    </div>
+
+    <!-- Stat Card: Tasks -->
+    <div class="bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 bg-sky-50 dark:bg-sky-900/20 rounded-xl flex items-center justify-center text-sky-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </div>
+        </div>
+        <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Tasks</div>
+        <div class="text-3xl font-bold mt-1 text-slate-900 dark:text-white">{{ missions|sum(attribute='task_count') if missions else 0 }}</div>
+    </div>
+
+    <!-- Stat Card: Overdue -->
+    <div class="bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center text-rose-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+        </div>
+        <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Overdue</div>
+        <div class="text-3xl font-bold mt-1 text-rose-500">0</div>
+    </div>
+
+    <!-- Stat Card: Completed -->
+    <div class="bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center text-emerald-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            </div>
+        </div>
+        <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Done (MTD)</div>
+        <div class="text-3xl font-bold mt-1 text-emerald-500">0</div>
+    </div>
+</div>
+
+<h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Missions</h2>
+
+{% if missions %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for item in missions %}
+        <div class="group relative bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 transition-all hover:border-brand-500/50 hover:shadow-xl hover:shadow-brand-500/10 flex flex-col h-full">
+            <div class="flex justify-between items-start mb-4">
+                <div class="p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-slate-400 group-hover:text-brand-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                
+                {% if user.role == 'admin' %}
+                <div x-data="{ open: false }" class="relative">
+                    <button @click="open = !open" class="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus:outline-none">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/></svg>
+                    </button>
+                    <div x-show="open" 
+                         x-cloak
+                         @click.away="open = false" 
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         class="absolute right-0 mt-2 w-36 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-10 p-1">
+                        <a href="/admin/missions/{{ item.mission.id }}/edit" class="flex items-center px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            Edit
+                        </a>
+                        <form action="/admin/missions/{{ item.mission.id }}/delete" method="post" class="block">
+                            <button type="submit" class="w-full flex items-center px-3 py-2 text-sm font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
+                <a href="/missions/{{ item.mission.id }}" class="hover:text-brand-600 transition-colors">{{ item.mission.name }}</a>
+            </h3>
+            
+            {% if item.mission.description %}
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 flex-grow">{{ item.mission.description }}</p>
+            {% else %}
+                <p class="text-sm italic text-slate-400 dark:text-slate-500 mb-6 flex-grow">No description provided.</p>
+            {% endif %}
+
+            <div class="mt-auto border-t border-slate-100 dark:border-slate-700/50 pt-4 flex items-center gap-3">
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">Projects</span>
+                    <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ item.project_count }}</span>
+                </div>
+                <div class="w-px h-8 bg-slate-100 dark:bg-slate-700"></div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">Total Tasks</span>
+                    <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ item.task_count }}</span>
                 </div>
             </div>
-            {% endif %}
         </div>
     {% endfor %}
 </div>
 {% else %}
-    {{ empty_state('No missions yet. Create one to get started!') }}
+    <div class="bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+        {{ empty_state('No missions yet. Create one to get started!', '🚀') }}
+    </div>
 {% endif %}
 {% endblock %}

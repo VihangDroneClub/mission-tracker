@@ -1,94 +1,182 @@
 {% extends "base.html" %}
-{% from "macros.html" import badge, status_badge, priority_badge, due_pill, empty_state with context %}
+{% from "macros.html" import badge, status_badge, priority_badge, due_pill, empty_state, avatar with context %}
+
 {% block title %}{{ task.title }}{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-    <a href="/projects/{{ task.project_id }}" class="text-sm text-gray-500 hover:text-sky-600">← Back to Project</a>
-</div>
-<div class="bg-white dark:bg-gray-800 rounded shadow p-6 mb-6">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-        <h1 class="text-2xl font-bold">{{ task.title }}</h1>
-        <div class="flex space-x-2 mt-2 sm:mt-0">
-            {{ priority_badge(task.priority) }}
-            {{ status_badge(task.status) }}
-            {{ due_pill(task.due_date) }}
+<!-- Breadcrumb -->
+<nav class="flex mb-8" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="/dashboard" class="inline-flex items-center text-sm font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-white">
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="w-6 h-6 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                <a href="/projects/{{ task.project_id }}" class="ml-1 text-sm font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-white md:ml-2">Project</a>
+            </div>
+        </li>
+        <li aria-current="page">
+            <div class="flex items-center">
+                <svg class="w-6 h-6 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                <span class="ml-1 text-sm font-bold text-slate-900 dark:text-white md:ml-2">Task Details</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+    <!-- Main Content -->
+    <div class="lg:col-span-2 space-y-10">
+        <!-- Task Header Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-8 opacity-5">
+                <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 mb-6">
+                {{ status_badge(task.status) }}
+                {{ priority_badge(task.priority) }}
+                {{ due_pill(task.due_date) }}
+            </div>
+
+            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white leading-tight mb-4">{{ task.title }}</h1>
+            
+            {% if task.description %}
+                <div class="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300">
+                    <p class="leading-relaxed">{{ task.description }}</p>
+                </div>
+            {% else %}
+                <p class="text-slate-400 italic">No description provided for this task.</p>
+            {% endif %}
+
+            <div class="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Created</span>
+                    <span class="text-sm font-semibold text-slate-600 dark:text-slate-400">{{ task.created_at[:10] }}</span>
+                </div>
+                
+                {% if user.role in ('lead', 'admin') %}
+                <div class="flex items-center gap-3">
+                    <form action="/tasks/{{ task.id }}/update-status" method="post" class="inline">
+                        {% if task.status == 'todo' %}
+                            <input type="hidden" name="new_status" value="in_progress">
+                            <button type="submit" class="px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all active:scale-95">Start Work</button>
+                        {% elif task.status == 'in_progress' %}
+                            <input type="hidden" name="new_status" value="done">
+                            <button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all active:scale-95">Complete Task</button>
+                        {% endif %}
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="space-y-6">
+            <div class="flex items-center justify-between px-2">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Discussion</h2>
+                <span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full">{{ comments|length }} Comments</span>
+            </div>
+
+            <div id="comments-list" class="space-y-6">
+                {% for comment in comments %}
+                    {% set username = username_map.get(comment.user_id, 'Unknown') %}
+                    {% include "_comment.html" %}
+                {% else %}
+                    <div class="bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-10">
+                        {{ empty_state('No comments yet. Start the conversation!', '💬') }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if user.role in ('lead', 'admin', 'member') %}
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm mt-8">
+                <form hx-post="/tasks/{{ task.id }}/comment" 
+                      hx-target="#comments-list" 
+                      hx-swap="beforeend" 
+                      hx-on::after-request="this.reset()"
+                      class="space-y-4">
+                    <textarea name="content" required placeholder="Write a comment..." class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none resize-none" rows="3"></textarea>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-3 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all active:scale-95">Post Comment</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
         </div>
     </div>
-    {% if task.description %}
-        <p class="text-gray-600 dark:text-gray-300 mb-4">{{ task.description }}</p>
-    {% endif %}
-    <div class="mb-4">
-        <h3 class="font-semibold mb-1">Assignees</h3>
-        <p>
-            {% for a in assignees %}
-                {{ a.username or a.display_name or a.id }}{% if not loop.last %}, {% endif %}
-            {% else %}
-                <span class="text-gray-500">None</span>
-            {% endfor %}
-        </p>
-    </div>
-    {% if user.role in ('lead', 'admin') %}
-    <form action="/tasks/{{ task.id }}/assign" method="post" class="mb-4">
-        <select name="assignee_ids" multiple size="5" class="border rounded p-2 w-full dark:bg-gray-700">
-            {% for u in assignable_users %}
-                {% set uid = u.id %}
-                <option value="{{ uid }}" {% if uid in assignees|map(attribute='id')|list %}selected{% endif %}>
-                    {{ u.username or u.display_name or u.id }} ({{ u.role }})
-                </option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="mt-2 px-3 py-1 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">Update Assignees</button>
-    </form>
-    <div class="mb-4">
-        <form action="/tasks/{{ task.id }}/update-status" method="post" class="inline">
-            {% if task.status == 'todo' %}
-                <input type="hidden" name="new_status" value="in_progress">
-                <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Start Progress</button>
-            {% elif task.status == 'in_progress' %}
-                <input type="hidden" name="new_status" value="done">
-                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Mark Done</button>
+
+    <!-- Sidebar -->
+    <div class="space-y-10">
+        <!-- Assignees Section -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Assignees</h3>
+            <div class="space-y-3">
+                {% for a in assignees %}
+                <div class="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-900 rounded-2xl">
+                    <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-xs font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-800">
+                        {{ (a.username or a.display_name or '?')[:1].upper() }}
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{{ a.username or a.display_name or a.id }}</p>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{{ a.role }}</span>
+                    </div>
+                </div>
+                {% else %}
+                    <p class="text-sm italic text-slate-500 text-center py-4">No one assigned yet.</p>
+                {% endfor %}
+            </div>
+
+            {% if user.role in ('lead', 'admin') %}
+            <div x-data="{ showAssign: false }" class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700/50">
+                <button @click="showAssign = !showAssign" class="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
+                    Manage Assignees
+                </button>
+                <div x-show="showAssign" x-cloak class="mt-4 animate-in fade-in slide-in-from-top-2">
+                    <form action="/tasks/{{ task.id }}/assign" method="post" class="space-y-3">
+                        <select name="assignee_ids" multiple size="5" class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                            {% for u in assignable_users %}
+                                {% set uid = u.id %}
+                                <option value="{{ uid }}" {% if uid in assignees|map(attribute='id')|list %}selected{% endif %}>
+                                    {{ u.username or u.display_name or u.id }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="w-full py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-xs hover:opacity-90 transition-all">Update</button>
+                    </form>
+                </div>
+            </div>
             {% endif %}
-        </form>
+        </div>
+
+        <!-- Attachments Section -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400">Attachments</h3>
+                {% if user.role in ('lead', 'admin') %}
+                <button onclick="document.getElementById('file-upload').click()" class="p-1.5 rounded-lg text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </button>
+                {% endif %}
+            </div>
+
+            <div id="attachment-list" class="space-y-4">
+                {% include "_attachment_list.html" %}
+            </div>
+
+            {% if user.role in ('lead', 'admin') %}
+            <form hx-post="/tasks/{{ task.id }}/attachments" 
+                  hx-encoding="multipart/form-data" 
+                  hx-target="#attachment-list" 
+                  hx-swap="innerHTML" 
+                  class="hidden">
+                <input type="file" name="file" id="file-upload" onchange="this.form.requestSubmit()">
+            </form>
+            {% endif %}
+        </div>
     </div>
-    {% endif %}
-</div>
-<!-- Attachments -->
-<div class="bg-white dark:bg-gray-800 rounded shadow p-6 mb-6">
-    <h2 class="text-xl font-semibold mb-4">Attachments</h2>
-    <div id="attachment-list">
-        {% include "_attachment_list.html" %}
-    </div>
-    {% if user.role in ('lead', 'admin') %}
-    <form hx-post="/tasks/{{ task.id }}/attachments" 
-          hx-encoding="multipart/form-data" 
-          hx-target="#attachment-list" 
-          hx-swap="innerHTML" 
-          class="mt-4">
-        <input type="file" name="file" required class="border rounded p-1 dark:bg-gray-700">
-        <button type="submit" class="ml-2 px-3 py-1 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">Upload</button>
-    </form>
-    {% endif %}
-</div>
-<!-- Comments -->
-<div class="bg-white dark:bg-gray-800 rounded shadow p-6">
-    <h2 class="text-xl font-semibold mb-4">Comments</h2>
-    <div id="comments-list" class="space-y-3">
-        {% for comment in comments %}
-            {% set username = username_map.get(comment.user_id, 'Unknown') %}
-            {% include "_comment.html" %}
-        {% else %}
-            {{ empty_state('No comments yet.') }}
-        {% endfor %}
-    </div>
-    {% if user.role in ('lead', 'admin') %}
-    <form hx-post="/tasks/{{ task.id }}/comment" 
-          hx-target="#comments-list" 
-          hx-swap="beforeend" 
-          hx-on::after-request="this.reset()"
-          class="mt-4 flex space-x-2">
-        <textarea name="content" required class="flex-1 border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600" rows="2"></textarea>
-        <button type="submit" class="px-3 py-1 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">Post</button>
-    </form>
-    {% endif %}
 </div>
 {% endblock %}

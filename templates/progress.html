@@ -1,40 +1,111 @@
 {% extends "base.html" %}
+{% from "macros.html" import avatar with context %}
+
 {% block title %}Monthly Progress{% endblock %}
+
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Monthly Progress</h1>
-<form method="get" class="mb-6 flex items-center gap-2">
-    <input type="month" name="month" value="{{ month }}"
-           class="border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-    <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700">View</button>
-</form>
-
-<h2 class="text-xl font-semibold mb-2">Mission / Project Breakdown for {{ month }}</h2>
-{% for mid, mdata in mission_stats.items() %}
-    <div class="mb-4">
-        <h3 class="font-bold text-lg">{{ mdata.name }}</h3>
-        <ul class="space-y-1">
-            {% for pid, pdata in mdata.projects.items() %}
-                <li class="flex items-center gap-2">
-                    <span>{{ pdata.name }}:</span>
-                    <span>{{ pdata.completed }}/{{ pdata.total }} done</span>
-                    {% if pdata.total > 0 %}
-                        <div class="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-green-500 h-2 rounded-full" style="width: {{ (pdata.completed / pdata.total * 100)|round }}%"></div>
-                        </div>
-                        <span>{{ (pdata.completed / pdata.total * 100)|round }}%</span>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
+<div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Monthly Progress</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Analytical breakdown of mission and project performance.</p>
     </div>
-{% endfor %}
+    
+    <form method="get" class="flex items-center gap-3">
+        <div class="relative">
+            <input type="month" name="month" value="{{ month }}"
+                   class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+        </div>
+        <button type="submit" class="px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all active:scale-95">
+            Filter
+        </button>
+    </form>
+</div>
 
-<h2 class="text-xl font-semibold mb-2 mt-6">Per‑Assignee Completions in {{ month }}</h2>
-<ul class="list-disc pl-5">
-    {% for aid, count in assignee_stats.items() %}
-        <li>{{ username_map.get(aid, aid) }}: {{ count }} tasks completed</li>
-    {% else %}
-        <li>No completions.</li>
-    {% endfor %}
-</ul>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+    <!-- Main Stats Column -->
+    <div class="lg:col-span-2 space-y-8">
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 px-2">
+            <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Mission & Project Completion
+        </h2>
+
+        <div class="space-y-6">
+            {% for mid, mdata in mission_stats.items() %}
+            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ mdata.name }}</h3>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">Mission</span>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    {% for pid, pdata in mdata.projects.items() %}
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ pdata.name }}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-bold text-slate-500 dark:text-slate-500">{{ pdata.completed }} / {{ pdata.total }} Done</span>
+                                {% if pdata.total > 0 %}
+                                    <span class="text-xs font-black text-brand-600 dark:text-brand-400">{{ (pdata.completed / pdata.total * 100)|round|int }}%</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-2.5 overflow-hidden">
+                            {% if pdata.total > 0 %}
+                                {% set pct = (pdata.completed / pdata.total * 100)|round|int %}
+                                <div class="bg-gradient-to-r from-brand-500 to-emerald-500 h-full rounded-full transition-all duration-1000 ease-out" style="width: {{ pct }}%"></div>
+                            {% else %}
+                                <div class="bg-slate-200 dark:bg-slate-800 h-full w-0 rounded-full"></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 py-20 text-center">
+                <p class="text-slate-500 italic">No missions recorded for this period.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Leaderboard Column -->
+    <div class="space-y-8">
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 px-2">
+            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z"/></svg>
+            Top Contributors
+        </h2>
+
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm">
+            <div class="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Completions this month</p>
+            </div>
+            
+            <div class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                {% for aid, count in assignee_stats.items() %}
+                <div class="flex items-center justify-between p-6 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-xs font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
+                            {{ username_map.get(aid, aid)[:1].upper() }}
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{{ username_map.get(aid, aid) }}</p>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Contributor</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xl font-black text-slate-900 dark:text-white">{{ count }}</div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tasks</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-10 text-center">
+                    <p class="text-sm italic text-slate-400">No completions recorded.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
