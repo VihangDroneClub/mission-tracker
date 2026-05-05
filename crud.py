@@ -255,6 +255,14 @@ def get_monthly_progress(month: str):
     return mission_stats, assignee_stats
 
 # ---------- Audit Logs ----------
+def get_audit_logs(limit=50, user_id=None, entity_type=None):
+    query = supabase.table("audit_logs").select("*").order("created_at", desc=True).limit(limit)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    if entity_type:
+        query = query.eq("entity_type", entity_type)
+    return query.execute().data
+
 def get_audit_log(log_id: str):
     return supabase.table("audit_logs").select("*").eq("id", log_id).single().execute().data
 
