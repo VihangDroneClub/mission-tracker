@@ -70,14 +70,15 @@
 {% if missions %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for item in missions %}
-        <div class="group relative bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 transition-all hover:border-brand-500/50 hover:shadow-xl hover:shadow-brand-500/10 flex flex-col h-full">
+        <div onclick="window.location='/missions/{{ item.mission.id }}'" 
+             class="group relative bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 transition-all hover:border-brand-500/50 hover:shadow-xl hover:shadow-brand-500/10 flex flex-col h-full cursor-pointer">
             <div class="flex justify-between items-start mb-4">
                 <div class="p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-slate-400 group-hover:text-brand-500 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 </div>
                 
                 {% if user.role == 'admin' %}
-                <div x-data="{ open: false }" class="relative">
+                <div x-data="{ open: false }" class="relative" @click.stop>
                     <button @click="open = !open" class="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus:outline-none">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/></svg>
                     </button>
