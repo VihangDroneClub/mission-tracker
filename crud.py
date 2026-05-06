@@ -5,14 +5,18 @@ import json
 
 def log_action(user_id: str, action: str, entity_type: str, entity_id: str,
                old_values: dict | None = None, new_values: dict | None = None):
-    supabase.table("audit_logs").insert({
-        "user_id": user_id,
-        "action": action,
-        "entity_type": entity_type,
-        "entity_id": str(entity_id),
-        "old_values": json.dumps(old_values) if old_values else None,
-        "new_values": json.dumps(new_values) if new_values else None,
-    }).execute()
+    client = supabase_admin if supabase_admin else supabase
+    try:
+        client.table("audit_logs").insert({
+            "user_id": user_id,
+            "action": action,
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "old_values": json.dumps(old_values) if old_values else None,
+            "new_values": json.dumps(new_values) if new_values else None,
+        }).execute()
+    except Exception as e:
+        print(f"DEBUG: Failed to log action {action}: {e}")
 
 # ---------- Missions ----------
 def get_all_missions(org_id: str = None):
