@@ -193,10 +193,11 @@ def delete_attachment(attachment_id: str, user_id: str, org_id: str = None):
         query = query.eq("organization_id", org_id)
     old = query.single().execute().data
     if old:
-        try:
-            supabase_admin.storage.from_("task-attachments").remove([old["storage_path"]])
-        except:
-            pass
+        if supabase_admin:
+            try:
+                supabase_admin.storage.from_("task-attachments").remove([old["storage_path"]])
+            except:
+                pass
         supabase.table("task_attachments").delete().eq("id", attachment_id).execute()
         log_action(user_id, "attachment_deleted", "task_attachment", attachment_id, old_values=old)
 
@@ -235,6 +236,8 @@ def get_next_member_id(org_id: str = None):
 
 def create_user_by_admin(email: str, password: str, display_name: str, role: str, admin_id: str, org_id: str = None):
     username = get_next_member_id(org_id)
+    if not supabase_admin:
+        raise Exception("Administrative actions require SUPABASE_SERVICE_ROLE_KEY to be configured.")
     try:
         auth_res = supabase_admin.auth.admin.create_user({
             "email": email,

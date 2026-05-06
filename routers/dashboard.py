@@ -11,45 +11,49 @@ router = APIRouter(tags=["dashboard"])
 async def dashboard(request: Request, user: dict = Depends(get_current_user)):
     org_id = user.get("organization_id")
     
-    # Optimized fetch to fix N+1
-    missions_query = supabase.table("missions").select("*")
-    if org_id:
-        missions_query = missions_query.eq("organization_id", org_id)
-    missions = missions_query.execute().data
-    
-    projects_query = supabase.table("projects").select("id, mission_id")
-    if org_id:
-        projects_query = projects_query.eq("organization_id", org_id)
-    projects = projects_query.execute().data
-    
-    tasks_query = supabase.table("tasks").select("id, project_id")
-    if org_id:
-        tasks_query = tasks_query.eq("organization_id", org_id)
-    tasks = tasks_query.execute().data
-    
-    project_map = {} 
-    for p in projects:
-        mid = p["mission_id"]
-        if mid not in project_map:
-            project_map[mid] = []
-        project_map[mid].append(p["id"])
+    try:
+        # Optimized fetch to fix N+1
+        missions_query = supabase.table("missions").select("*")
+        if org_id:
+            missions_query = missions_query.eq("organization_id", org_id)
+        missions_data = missions_query.execute().data or []
         
-    task_map = {}
-    for t in tasks:
-        pid = t["project_id"]
-        task_map[pid] = task_map.get(pid, 0) + 1
+        projects_query = supabase.table("projects").select("id, mission_id")
+        if org_id:
+            projects_query = projects_query.eq("organization_id", org_id)
+        projects_data = projects_query.execute().data or []
         
-    mission_stats = []
-    for m in missions:
-        m_projects = project_map.get(m["id"], [])
-        t_count = sum(task_map.get(pid, 0) for pid in m_projects)
-        mission_stats.append({
-            "mission": m,
-            "project_count": len(m_projects),
-            "task_count": t_count
-        })
+        tasks_query = supabase.table("tasks").select("id, project_id")
+        if org_id:
+            tasks_query = tasks_query.eq("organization_id", org_id)
+        tasks_data = tasks_query.execute().data or []
         
-    return render_template("dashboard.html", request, user=user, missions=mission_stats)
+        project_map = {} 
+        for p in projects_data:
+            mid = p["mission_id"]
+            if mid not in project_map:
+                project_map[mid] = []
+            project_map[mid].append(p["id"])
+            
+        task_map = {}
+        for t in tasks_data:
+            pid = t["project_id"]
+            task_map[pid] = task_map.get(pid, 0) + 1
+            
+        mission_stats = []
+        for m in missions_data:
+            m_projects = project_map.get(m["id"], [])
+            t_count = sum(task_map.get(pid, 0) for pid in m_projects)
+            mission_stats.append({
+                "mission": m,
+                "project_count": len(m_projects),
+                "task_count": t_count
+            })
+            
+        return render_template("dashboard.html", request, user=user, missions=mission_stats)
+    except Exception as e:
+        # Fallback for migration/initial setup issues
+        return render_template("dashboard.html", request, user=user, missions=[], error=str(e))
 
 @router.get("/my-tasks")
 async def my_tasks(request: Request, user: dict = Depends(get_current_user)):

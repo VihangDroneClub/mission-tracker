@@ -88,7 +88,7 @@ async def task_detail(request: Request, task_id: str, user: dict = Depends(get_c
     attachments = []
     try:
         attachments = crud.get_attachments(task_id, org_id)
-        if attachments:
+        if attachments and supabase_admin:
             for att in attachments:
                 try:
                     signed = supabase_admin.storage.from_("task-attachments") \
@@ -96,6 +96,9 @@ async def task_detail(request: Request, task_id: str, user: dict = Depends(get_c
                     att["signed_url"] = signed["signedURL"] if signed else None
                 except:
                     att["signed_url"] = None
+        else:
+            for att in attachments:
+                att["signed_url"] = None
     except:
         attachments = []
     return render_template("task_detail.html", request, user=user, task=task,
@@ -134,15 +137,22 @@ async def upload_attachment(request: Request, task_id: str,
     contents = await file.read()
     mime = file.content_type
     size = len(contents)
+    
+    if not supabase_admin:
+        raise HTTPException(status_code=500, detail="Storage operations require SUPABASE_SERVICE_ROLE_KEY to be configured.")
+        
     supabase_admin.storage.from_("task-attachments").upload(
         storage_path, contents, {"content-type": mime}
     )
     crud.add_attachment(task_id, user["id"], filename, storage_path, mime, size, org_id)
     attachments = crud.get_attachments(task_id, org_id)
     for att in attachments:
-        signed = supabase_admin.storage.from_("task-attachments") \
-            .create_signed_url(att["storage_path"], 3600)
-        att["signed_url"] = signed["signedURL"] if signed else None
+        try:
+            signed = supabase_admin.storage.from_("task-attachments") \
+                .create_signed_url(att["storage_path"], 3600)
+            att["signed_url"] = signed["signedURL"] if signed else None
+        except:
+            att["signed_url"] = None
     if request.headers.get("HX-Request") == "true":
         return HTMLResponse(jinja_env.get_template("_attachment_list.html").render(attachments=attachments, task=crud.get_task(task_id, org_id)))
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
@@ -157,9 +167,15 @@ async def delete_attachment_endpoint(task_id: str, attachment_id: str,
     crud.delete_attachment(attachment_id, user["id"], org_id)
     attachments = crud.get_attachments(task_id, org_id)
     for att in attachments:
-        signed = supabase_admin.storage.from_("task-attachments") \
-            .create_signed_url(att["storage_path"], 3600)
-        att["signed_url"] = signed["signedURL"] if signed else None
+        if supabase_admin:
+            try:
+                signed = supabase_admin.storage.from_("task-attachments") \
+                    .create_signed_url(att["storage_path"], 3600)
+                att["signed_url"] = signed["signedURL"] if signed else None
+            except:
+                att["signed_url"] = None
+        else:
+            att["signed_url"] = None
     if request.headers.get("HX-Request") == "true":
         return HTMLResponse(jinja_env.get_template("_attachment_list.html").render(attachments=attachments, task=crud.get_task(task_id, org_id)))
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)

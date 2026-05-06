@@ -32,10 +32,26 @@ async def get_current_user(request: Request) -> dict:
 
     # Use supabase_admin to bypass RLS for the initial profile fetch
     # This ensures we can always get the user's role and org_id
-    profile_response = supabase_admin.table("profiles").select("*").eq("id", user.id).execute()
-    if not profile_response.data:
-        raise HTTPException(status_code=401, detail="Profile not found")
-    profile = profile_response.data[0]
+    if supabase_admin:
+        client = supabase_admin
+    else:
+        # Fallback to regular supabase client if service role key is missing
+        # Note: We attempt to set the auth header for this request
+        client = supabase
+        if hasattr(client, "postgrest"):
+            client.postgrest.auth(token)
+
+    if not client:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+
+    try:
+        profile_response = client.table("profiles").select("*").eq("id", user.id).execute()
+        if not profile_response.data:
+            raise HTTPException(status_code=401, detail="Profile not found")
+        profile = profile_response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
     return {
         "id": user.id, 
         "email": user.email, 
