@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException, Depends
 from fastapi.responses import RedirectResponse
-from database import supabase
+from database import supabase, supabase_admin
 from typing import Optional
 
 COOKIE_NAME = "access_token"
@@ -30,7 +30,9 @@ async def get_current_user(request: Request) -> dict:
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    profile_response = supabase.table("profiles").select("*").eq("id", user.id).execute()
+    # Use supabase_admin to bypass RLS for the initial profile fetch
+    # This ensures we can always get the user's role and org_id
+    profile_response = supabase_admin.table("profiles").select("*").eq("id", user.id).execute()
     if not profile_response.data:
         raise HTTPException(status_code=401, detail="Profile not found")
     profile = profile_response.data[0]
