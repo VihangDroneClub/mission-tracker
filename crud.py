@@ -169,7 +169,7 @@ def add_comment(task_id: str, content: str, user_id: str, org_id: str = None):
     if org_id:
         data["organization_id"] = org_id
     res = supabase.table("comments").insert(data).execute().data[0]
-    log_action(user_id, "comment_added", "comment", res["id"], new_values=data)
+    log_action(user_id, "comment_added", "comment", res["id"], new_values=data, org_id=org_id)
     return res
 
 # ---------- Attachments ----------
@@ -192,7 +192,7 @@ def add_attachment(task_id: str, uploader_id: str, file_name: str, storage_path:
     if org_id:
         data["organization_id"] = org_id
     res = supabase.table("task_attachments").insert(data).execute().data[0]
-    log_action(uploader_id, "attachment_uploaded", "task_attachment", res["id"], new_values=data)
+    log_action(uploader_id, "attachment_uploaded", "task_attachment", res["id"], new_values=data, org_id=org_id)
     return res
 
 def delete_attachment(attachment_id: str, user_id: str, org_id: str = None):
@@ -207,7 +207,7 @@ def delete_attachment(attachment_id: str, user_id: str, org_id: str = None):
             except:
                 pass
         supabase.table("task_attachments").delete().eq("id", attachment_id).execute()
-        log_action(user_id, "attachment_deleted", "task_attachment", attachment_id, old_values=old)
+        log_action(user_id, "attachment_deleted", "task_attachment", attachment_id, old_values=old, org_id=org_id)
 
 # ---------- Users ----------
 def get_all_users(org_id: str = None):
@@ -266,7 +266,7 @@ def create_user_by_admin(email: str, password: str, display_name: str, role: str
         
     supabase.table("profiles").update(update_data).eq("id", user_id).execute()
     log_action(admin_id, "user_created", "user", user_id,
-               new_values={"email": email, "username": username, "display_name": display_name, "role": role, "organization_id": org_id})
+               new_values={"email": email, "username": username, "display_name": display_name, "role": role, "organization_id": org_id}, org_id=org_id)
     return user_id
 
 # ---------- Progress Reporting ----------
@@ -332,11 +332,12 @@ def get_monthly_progress(month: str, org_id: str = None):
 # ---------- Audit Logs ----------
 def get_audit_logs(limit=50, user_id=None, entity_type=None, org_id: str = None):
     query = supabase.table("audit_logs").select("*").order("created_at", desc=True).limit(limit)
+    if org_id:
+        query = query.eq("organization_id", org_id)
     if user_id:
         query = query.eq("user_id", user_id)
     if entity_type:
         query = query.eq("entity_type", entity_type)
-    # Note: audit_logs might need organization_id too in the future
     return query.execute().data
 
 def get_audit_log(log_id: str):
@@ -352,11 +353,13 @@ def revert_action(log_id: str, admin_id: str):
     entity_id = log["entity_id"]
     old_values = json.loads(log["old_values"]) if log["old_values"] else None
     
+    org_id = log.get("organization_id")
+    
     if not old_values:
         # If it was a 'created' action, undoing it means deleting the entity
         if "created" in action or "added" in action or "uploaded" in action:
             supabase.table(f"{entity_type}s" if not entity_type.endswith('s') else entity_type).delete().eq("id", entity_id).execute()
-            log_action(admin_id, f"reverted_{action}", entity_type, entity_id, old_values=json.loads(log["new_values"]) if log["new_values"] else None)
+            log_action(admin_id, f"reverted_{action}", entity_type, entity_id, old_values=json.loads(log["new_values"]) if log["new_values"] else None, org_id=org_id)
             return True
         raise Exception("Nothing to revert to (no old values)")
 
@@ -395,5 +398,5 @@ def revert_action(log_id: str, admin_id: str):
 
     log_action(admin_id, f"reverted_{action}", entity_type, entity_id, 
                old_values=json.loads(log["new_values"]) if log["new_values"] else None,
-               new_values=old_values)
+               new_values=old_values, org_id=org_id)
     return True

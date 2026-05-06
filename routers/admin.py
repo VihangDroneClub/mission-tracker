@@ -25,7 +25,7 @@ async def change_user_role(user_id: str, new_role: str = Form(...), user: dict =
 
     supabase.table("profiles").update({"role": new_role}).eq("id", user_id).execute()
     crud.log_action(user["id"], "role_updated", "user", user_id,
-                    old_values={"role": "..."}, new_values={"role": new_role})
+                    old_values={"role": "..."}, new_values={"role": new_role}, org_id=org_id)
     return RedirectResponse(url="/admin/users", status_code=303)
 
 @router.get("/users/add")
