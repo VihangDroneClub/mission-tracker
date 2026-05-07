@@ -61,6 +61,13 @@
                 
                 {% if user.role in ('lead', 'admin') %}
                 <div class="flex items-center gap-3">
+                    <form action="/tasks/{{ task.id }}/delete" method="post" onsubmit="return confirm('{% if ui_mode == 'tactical' %}CONFIRM_DIRECTIVE_PURGE?{% else %}Are you sure you want to delete this task?{% endif %}')" class="inline">
+                        <button type="submit" class="px-4 py-2.5 border border-error/30 text-error rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-error/10 transition-all active:scale-95 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                            {% if ui_mode == 'tactical' %}Purge_Directive{% else %}Delete Task{% endif %}
+                        </button>
+                    </form>
+                    
                     <form action="/tasks/{{ task.id }}/update-status" method="post" class="inline">
                         {% if task.status == 'todo' %}
                             <input type="hidden" name="new_status" value="in_progress">

@@ -179,3 +179,13 @@ async def delete_attachment_endpoint(task_id: str, attachment_id: str,
     if request.headers.get("HX-Request") == "true":
         return HTMLResponse(jinja_env.get_template("_attachment_list.html").render(attachments=attachments, task=crud.get_task(task_id, org_id)))
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
+
+@router.post("/tasks/{task_id}/delete")
+async def delete_task(task_id: str, user: dict = Depends(lead_or_admin_required)):
+    org_id = user.get("organization_id")
+    task = crud.get_task(task_id, org_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    project_id = task["project_id"]
+    crud.delete_task(task_id, user["id"], org_id)
+    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)

@@ -30,6 +30,12 @@
 
         {% if user.role == 'admin' %}
         <div class="flex items-center gap-3">
+            <form action="/admin/missions/{{ mission.id }}/delete" method="post" onsubmit="return confirm('{% if ui_mode == 'tactical' %}CONFIRM_DATA_PURGE?{% else %}Are you sure you want to delete this mission?{% endif %}')">
+                <button type="submit" class="px-4 py-2 border border-error/30 text-error text-[10px] font-bold uppercase tracking-widest rounded hover:bg-error/10 transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                    {% if ui_mode == 'tactical' %}Purge_Mission{% else %}Delete Mission{% endif %}
+                </button>
+            </form>
             <a href="/admin/missions/{{ mission.id }}/edit" class="px-4 py-2 border border-outline-variant text-[10px] font-bold uppercase tracking-widest rounded hover:bg-surface-variant transition-all">{% if ui_mode == 'tactical' %}Edit_Data{% else %}Edit Mission{% endif %}</a>
             <a href="/admin/projects/create?mission_id={{ mission.id }}" class="px-6 py-2 bg-primary text-on-primary text-[10px] font-bold uppercase tracking-[0.2em] rounded shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
                 <span class="material-symbols-outlined text-sm">add</span>
