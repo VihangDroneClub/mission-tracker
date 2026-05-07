@@ -3,9 +3,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 import crud
 from auth import admin_required
 from templates_utils import render_template, get_username_map
-from database import supabase
+from database import supabase, supabase_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+def _get_client():
+    return supabase_admin if supabase_admin else supabase
 
 @router.get("/users")
 async def list_users(request: Request, user: dict = Depends(admin_required)):
@@ -23,7 +26,7 @@ async def change_user_role(user_id: str, new_role: str = Form(...), user: dict =
     if not target_profile:
         raise HTTPException(status_code=403, detail="Forbidden or user not found")
 
-    supabase.table("profiles").update({"role": new_role}).eq("id", user_id).execute()
+    _get_client().table("profiles").update({"role": new_role}).eq("id", user_id).execute()
     crud.log_action(user["id"], "role_updated", "user", user_id,
                     old_values={"role": "..."}, new_values={"role": new_role}, org_id=org_id)
     return RedirectResponse(url="/admin/users", status_code=303)

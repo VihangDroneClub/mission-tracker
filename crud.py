@@ -3,9 +3,12 @@ from database import supabase, supabase_admin
 import uuid
 import json
 
+def _get_client():
+    return supabase_admin if supabase_admin else supabase
+
 def log_action(user_id: str, action: str, entity_type: str, entity_id: str,
                old_values: dict | None = None, new_values: dict | None = None, org_id: str | None = None):
-    client = supabase_admin if supabase_admin else supabase
+    client = _get_client()
     try:
         data = {
             "user_id": user_id,
@@ -24,13 +27,13 @@ def log_action(user_id: str, action: str, entity_type: str, entity_id: str,
 
 # ---------- Missions ----------
 def get_all_missions(org_id: str = None):
-    query = supabase.table("missions").select("*").order("created_at", desc=False)
+    query = _get_client().table("missions").select("*").order("created_at", desc=False)
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
 
 def get_mission(mission_id: str, org_id: str = None):
-    query = supabase.table("missions").select("*").eq("id", mission_id)
+    query = _get_client().table("missions").select("*").eq("id", mission_id)
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.single().execute().data
@@ -39,30 +42,30 @@ def create_mission(name: str, description: str | None, user_id: str, org_id: str
     data = {"name": name, "description": description}
     if org_id:
         data["organization_id"] = org_id
-    res = supabase.table("missions").insert(data).execute().data[0]
+    res = _get_client().table("missions").insert(data).execute().data[0]
     log_action(user_id, "mission_created", "mission", res["id"], new_values=data, org_id=org_id)
     return res
 
 def update_mission(mission_id: str, name: str, description: str | None, user_id: str, org_id: str = None):
     old = get_mission(mission_id, org_id)
     new_data = {"name": name, "description": description}
-    supabase.table("missions").update(new_data).eq("id", mission_id).execute()
+    _get_client().table("missions").update(new_data).eq("id", mission_id).execute()
     log_action(user_id, "mission_updated", "mission", mission_id, old_values=old, new_values=new_data, org_id=org_id)
 
 def delete_mission(mission_id: str, user_id: str, org_id: str = None):
     old = get_mission(mission_id, org_id)
-    supabase.table("missions").delete().eq("id", mission_id).execute()
+    _get_client().table("missions").delete().eq("id", mission_id).execute()
     log_action(user_id, "mission_deleted", "mission", mission_id, old_values=old, org_id=org_id)
 
 # ---------- Projects ----------
 def get_projects_for_mission(mission_id: str, org_id: str = None):
-    query = supabase.table("projects").select("*").eq("mission_id", mission_id).order("created_at")
+    query = _get_client().table("projects").select("*").eq("mission_id", mission_id).order("created_at")
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
 
 def get_project(project_id: str, org_id: str = None):
-    query = supabase.table("projects").select("*").eq("id", project_id)
+    query = _get_client().table("projects").select("*").eq("id", project_id)
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.single().execute().data
@@ -71,30 +74,30 @@ def create_project(name: str, description: str | None, mission_id: str, lead_id:
     data = {"name": name, "description": description, "mission_id": mission_id, "lead_id": lead_id}
     if org_id:
         data["organization_id"] = org_id
-    res = supabase.table("projects").insert(data).execute().data[0]
+    res = _get_client().table("projects").insert(data).execute().data[0]
     log_action(user_id, "project_created", "project", res["id"], new_values=data, org_id=org_id)
     return res
 
 def update_project(project_id: str, name: str, description: str | None, lead_id: str | None, user_id: str, org_id: str = None):
     old = get_project(project_id, org_id)
     new_data = {"name": name, "description": description, "lead_id": lead_id}
-    supabase.table("projects").update(new_data).eq("id", project_id).execute()
+    _get_client().table("projects").update(new_data).eq("id", project_id).execute()
     log_action(user_id, "project_updated", "project", project_id, old_values=old, new_values=new_data, org_id=org_id)
 
 def delete_project(project_id: str, user_id: str, org_id: str = None):
     old = get_project(project_id, org_id)
-    supabase.table("projects").delete().eq("id", project_id).execute()
+    _get_client().table("projects").delete().eq("id", project_id).execute()
     log_action(user_id, "project_deleted", "project", project_id, old_values=old, org_id=org_id)
 
 # ---------- Tasks ----------
 def get_tasks_for_project(project_id: str, org_id: str = None):
-    query = supabase.table("tasks").select("*").eq("project_id", project_id).order("created_at")
+    query = _get_client().table("tasks").select("*").eq("project_id", project_id).order("created_at")
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
 
 def get_task(task_id: str, org_id: str = None):
-    query = supabase.table("tasks").select("*").eq("id", task_id)
+    query = _get_client().table("tasks").select("*").eq("id", task_id)
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.single().execute().data
@@ -124,34 +127,34 @@ def update_task_status(task_id: str, new_status: str, user_id: str, org_id: str 
 
 # ---------- Multi-Assignees ----------
 def get_assignees(task_id: str) -> list[dict]:
-    assignee_rows = supabase.table("task_assignees").select("user_id").eq("task_id", task_id).execute().data
+    assignee_rows = _get_client().table("task_assignees").select("user_id").eq("task_id", task_id).execute().data
     user_ids = [r["user_id"] for r in assignee_rows]
     if not user_ids:
         return []
-    profiles = supabase.table("profiles").select("id, username, display_name, role").in_("id", user_ids).execute().data
+    profiles = _get_client().table("profiles").select("id, username, display_name, role").in_("id", user_ids).execute().data
     return profiles
 
 def assign_users_to_task(task_id: str, user_ids: list[str], admin_id: str):
-    supabase.table("task_assignees").delete().eq("task_id", task_id).execute()
+    _get_client().table("task_assignees").delete().eq("task_id", task_id).execute()
     rows = [{"task_id": task_id, "user_id": uid} for uid in user_ids if uid]
     if rows:
-        supabase.table("task_assignees").insert(rows).execute()
+        _get_client().table("task_assignees").insert(rows).execute()
     log_action(admin_id, "task_assignees_updated", "task", task_id,
                new_values={"assignee_ids": user_ids})
 
 def get_tasks_for_user(user_id: str, org_id: str = None) -> list[dict]:
-    rows = supabase.table("task_assignees").select("task_id").eq("user_id", user_id).execute().data
+    rows = _get_client().table("task_assignees").select("task_id").eq("user_id", user_id).execute().data
     task_ids = [r["task_id"] for r in rows]
     if not task_ids:
         return []
-    query = supabase.table("tasks").select("*").in_("id", task_ids)
+    query = _get_client().table("tasks").select("*").in_("id", task_ids)
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
 
 # ---------- Comments ----------
 def get_comments_for_task(task_id: str, org_id: str = None):
-    query = supabase.table("comments").select("*").eq("task_id", task_id).order("created_at", desc=False)
+    query = _get_client().table("comments").select("*").eq("task_id", task_id).order("created_at", desc=False)
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
@@ -160,13 +163,13 @@ def add_comment(task_id: str, content: str, user_id: str, org_id: str = None):
     data = {"task_id": task_id, "user_id": user_id, "content": content}
     if org_id:
         data["organization_id"] = org_id
-    res = supabase.table("comments").insert(data).execute().data[0]
+    res = _get_client().table("comments").insert(data).execute().data[0]
     log_action(user_id, "comment_added", "comment", res["id"], new_values=data, org_id=org_id)
     return res
 
 # ---------- Attachments ----------
 def get_attachments(task_id: str, org_id: str = None) -> list[dict]:
-    query = supabase.table("task_attachments").select("*").eq("task_id", task_id).order("created_at")
+    query = _get_client().table("task_attachments").select("*").eq("task_id", task_id).order("created_at")
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
@@ -183,12 +186,12 @@ def add_attachment(task_id: str, uploader_id: str, file_name: str, storage_path:
     }
     if org_id:
         data["organization_id"] = org_id
-    res = supabase.table("task_attachments").insert(data).execute().data[0]
+    res = _get_client().table("task_attachments").insert(data).execute().data[0]
     log_action(uploader_id, "attachment_uploaded", "task_attachment", res["id"], new_values=data, org_id=org_id)
     return res
 
 def delete_attachment(attachment_id: str, user_id: str, org_id: str = None):
-    query = supabase.table("task_attachments").select("*").eq("id", attachment_id)
+    query = _get_client().table("task_attachments").select("*").eq("id", attachment_id)
     if org_id:
         query = query.eq("organization_id", org_id)
     old = query.single().execute().data
@@ -198,18 +201,18 @@ def delete_attachment(attachment_id: str, user_id: str, org_id: str = None):
                 supabase_admin.storage.from_("task-attachments").remove([old["storage_path"]])
             except:
                 pass
-        supabase.table("task_attachments").delete().eq("id", attachment_id).execute()
+        _get_client().table("task_attachments").delete().eq("id", attachment_id).execute()
         log_action(user_id, "attachment_deleted", "task_attachment", attachment_id, old_values=old, org_id=org_id)
 
 # ---------- Users ----------
 def get_all_users(org_id: str = None):
-    query = supabase.table("profiles").select("id, role")
+    query = _get_client().table("profiles").select("id, role")
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
 
 def get_users_by_role(role: str, org_id: str = None):
-    query = supabase.table("profiles").select("id, role, username, display_name").eq("role", role)
+    query = _get_client().table("profiles").select("id, role, username, display_name").eq("role", role)
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
@@ -257,7 +260,7 @@ def create_user_by_admin(email: str, password: str, display_name: str, role: str
     if org_id:
         update_data["organization_id"] = org_id
         
-    supabase.table("profiles").update(update_data).eq("id", user_id).execute()
+    _get_client().table("profiles").update(update_data).eq("id", user_id).execute()
     log_action(admin_id, "user_created", "user", user_id,
                new_values={"email": email, "username": username, "display_name": display_name, "role": role, "organization_id": org_id}, org_id=org_id)
     return user_id
@@ -273,19 +276,19 @@ def get_monthly_progress(month: str, org_id: str = None):
         end_month = f"{y}-{m+1:02d}"
     end_date = f"{end_month}-01T00:00:00Z"
 
-    tasks_query = supabase.table("tasks").select("*")
+    tasks_query = _get_client().table("tasks").select("*")
     if org_id:
         tasks_query = tasks_query.eq("organization_id", org_id)
     all_tasks = tasks_query.execute().data
     
     completed_tasks = [t for t in all_tasks if t["status"] == "done" and t["updated_at"] >= start_date and t["updated_at"] < end_date]
 
-    missions_query = supabase.table("missions").select("id, name")
+    missions_query = _get_client().table("missions").select("id, name")
     if org_id:
         missions_query = missions_query.eq("organization_id", org_id)
     missions = missions_query.execute().data
     
-    projects_query = supabase.table("projects").select("id, name, mission_id")
+    projects_query = _get_client().table("projects").select("id, name, mission_id")
     if org_id:
         projects_query = projects_query.eq("organization_id", org_id)
     projects = projects_query.execute().data
@@ -314,7 +317,7 @@ def get_monthly_progress(month: str, org_id: str = None):
     assignee_stats = {}
     if completed_tasks:
         task_ids = [t["id"] for t in completed_tasks]
-        all_rows = supabase.table("task_assignees").select("task_id, user_id").in_("task_id", task_ids).execute().data
+        all_rows = _get_client().table("task_assignees").select("task_id, user_id").in_("task_id", task_ids).execute().data
         for row in all_rows:
             uid = row["user_id"]
             if uid:
@@ -324,7 +327,7 @@ def get_monthly_progress(month: str, org_id: str = None):
 
 # ---------- Audit Logs ----------
 def get_audit_logs(limit=50, user_id=None, entity_type=None, org_id: str = None):
-    query = supabase.table("audit_logs").select("*").order("created_at", desc=True).limit(limit)
+    query = _get_client().table("audit_logs").select("*").order("created_at", desc=True).limit(limit)
     if org_id:
         query = query.eq("organization_id", org_id)
     if user_id:
@@ -334,7 +337,7 @@ def get_audit_logs(limit=50, user_id=None, entity_type=None, org_id: str = None)
     return query.execute().data
 
 def get_audit_log(log_id: str):
-    return supabase.table("audit_logs").select("*").eq("id", log_id).single().execute().data
+    return _get_client().table("audit_logs").select("*").eq("id", log_id).single().execute().data
 
 def revert_action(log_id: str, admin_id: str):
     log = get_audit_log(log_id)
@@ -351,32 +354,32 @@ def revert_action(log_id: str, admin_id: str):
     if not old_values:
         # If it was a 'created' action, undoing it means deleting the entity
         if "created" in action or "added" in action or "uploaded" in action:
-            supabase.table(f"{entity_type}s" if not entity_type.endswith('s') else entity_type).delete().eq("id", entity_id).execute()
+            _get_client().table(f"{entity_type}s" if not entity_type.endswith('s') else entity_type).delete().eq("id", entity_id).execute()
             log_action(admin_id, f"reverted_{action}", entity_type, entity_id, old_values=json.loads(log["new_values"]) if log["new_values"] else None, org_id=org_id)
             return True
         raise Exception("Nothing to revert to (no old values)")
 
     # Status Reversal
     if action == "task_status_changed":
-        supabase.table("tasks").update({"status": old_values["status"]}).eq("id", entity_id).execute()
+        _get_client().table("tasks").update({"status": old_values["status"]}).eq("id", entity_id).execute()
     
     # Metadata/Edit Reversal
     elif action in ("mission_updated", "project_updated"):
         table = "missions" if action == "mission_updated" else "projects"
         # We only restore fields that were in the edit form
         data = {k: v for k, v in old_values.items() if k in ("name", "description", "lead_id")}
-        supabase.table(table).update(data).eq("id", entity_id).execute()
+        _get_client().table(table).update(data).eq("id", entity_id).execute()
     
     # Role Reversal
     elif action == "role_updated":
-        supabase.table("profiles").update({"role": old_values["role"]}).eq("id", entity_id).execute()
+        _get_client().table("profiles").update({"role": old_values["role"]}).eq("id", entity_id).execute()
     
     # Assignees Reversal
     elif action == "task_assignees_updated":
-        supabase.table("task_assignees").delete().eq("task_id", entity_id).execute()
+        _get_client().table("task_assignees").delete().eq("task_id", entity_id).execute()
         rows = [{"task_id": entity_id, "user_id": uid} for uid in old_values.get("assignee_ids", []) if uid]
         if rows:
-            supabase.table("task_assignees").insert(rows).execute()
+            _get_client().table("task_assignees").insert(rows).execute()
 
     # Deletion Reversal (Restore)
     elif "deleted" in action:
@@ -384,7 +387,7 @@ def revert_action(log_id: str, admin_id: str):
         # Special case for task_attachments as the table name is different
         if entity_type == "task_attachment":
              table = "task_attachments"
-        supabase.table(table).insert(old_values).execute()
+        _get_client().table(table).insert(old_values).execute()
     
     else:
         raise Exception(f"Action '{action}' cannot be automatically reverted yet.")

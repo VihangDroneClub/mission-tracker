@@ -236,12 +236,6 @@
                         <span class="material-symbols-outlined absolute left-2 top-1.5 text-on-surface-variant text-sm">search</span>
                     </form>
                 </div>
-                <button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-all text-xl">notifications</button>
-                <div class="w-8 h-8 border border-primary/40 p-0.5 overflow-hidden rounded-full">
-                    <div class="w-full h-full bg-surface-container-high flex items-center justify-center text-primary text-xs font-bold uppercase">
-                        {{ user.email[:2] }}
-                    </div>
-                </div>
             </div>
         </header>
         {% endif %}
@@ -267,6 +261,16 @@
     </main>
 
     <div id="toast-container" class="fixed bottom-5 right-5 z-[110] flex flex-col gap-2"></div>
+    
+    <!-- Mobile Logout Button (Bottom Left) -->
+    {% if user %}
+    <div class="fixed bottom-6 left-6 z-[100] md:hidden">
+        <a href="/logout" class="flex items-center justify-center w-12 h-12 bg-surface/80 backdrop-blur-xl border border-error/30 text-error rounded-full shadow-2xl hover:bg-error/10 transition-all active:scale-95">
+            <span class="material-symbols-outlined text-xl">power_settings_new</span>
+        </a>
+    </div>
+    {% endif %}
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -3,9 +3,12 @@ from datetime import date, datetime
 import crud
 from auth import get_current_user
 from templates_utils import render_template, get_username_map
-from database import supabase
+from database import supabase, supabase_admin
 
 router = APIRouter(tags=["dashboard"])
+
+def _get_client():
+    return supabase_admin if supabase_admin else supabase
 
 @router.get("/dashboard")
 async def dashboard(request: Request, user: dict = Depends(get_current_user)):
@@ -14,22 +17,22 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
     
     try:
         # Optimized fetch to fix N+1
-        missions_query = supabase.table("missions").select("*")
+        missions_query = _get_client().table("missions").select("*")
         if org_id:
             missions_query = missions_query.eq("organization_id", org_id)
         missions_data = missions_query.execute().data or []
         
-        projects_query = supabase.table("projects").select("id, mission_id")
+        projects_query = _get_client().table("projects").select("id, mission_id")
         if org_id:
             projects_query = projects_query.eq("organization_id", org_id)
         projects_data = projects_query.execute().data or []
         
-        tasks_query = supabase.table("tasks").select("*")
+        tasks_query = _get_client().table("tasks").select("*")
         if org_id:
             tasks_query = tasks_query.eq("organization_id", org_id)
         tasks_data = tasks_query.execute().data or []
         
-        profiles_query = supabase.table("profiles").select("id", count="exact")
+        profiles_query = _get_client().table("profiles").select("id", count="exact")
         if org_id:
             profiles_query = profiles_query.eq("organization_id", org_id)
         profiles_res = profiles_query.execute()
@@ -161,7 +164,7 @@ async def search(
     user: dict = Depends(get_current_user)
 ):
     org_id = user.get("organization_id")
-    missions_query = supabase.table("missions").select("*")
+    missions_query = _get_client().table("missions").select("*")
     if org_id:
         missions_query = missions_query.eq("organization_id", org_id)
     missions = missions_query.execute().data
@@ -171,7 +174,7 @@ async def search(
     if mission_id_val:
         projects = crud.get_projects_for_mission(mission_id_val, org_id)
 
-    query = supabase.table("tasks").select("*")
+    query = _get_client().table("tasks").select("*")
     if org_id:
         query = query.eq("organization_id", org_id)
         
