@@ -1,56 +1,61 @@
 {% extends "base.html" %}
 
-{% block title %}{% if task %}Edit{% else %}New{% endif %} Task - Mission Tracker{% endblock %}
+{% block title %}{{ 'Edit' if task else 'New' }} {{ t.task }} - Mission Tracker{% endblock %}
+{% block header_title %}{{ t.task }} Unit Setup{% endblock %}
 
 {% block content %}
 <div class="mb-8">
-    <a href="/projects/{{ project.id }}" class="inline-flex items-center text-sm font-bold text-slate-500 hover:text-brand-600 transition-colors">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-        Back to Project
+    <a href="/projects/{{ project.id }}" class="inline-flex items-center text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-sm mr-2">arrow_back</span>
+        {% if ui_mode == 'tactical' %}Abort_To_Node{% else %}Back to Project{% endif %}
     </a>
 </div>
 
 <div class="max-w-2xl mx-auto">
-    <div class="mb-10 text-center">
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{% if task %}Edit{% else %}Create{% endif %} Task</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-2">{% if task %}Modify the details of an existing mission task.{% else %}Define a new operation within {{ project.name }}.{% endif %}</p>
+    <div class="mb-10">
+        <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{{ 'Edit' if task else 'Initialize' }} {{ t.task }}</h1>
+        <p class="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">{% if ui_mode == 'tactical' %}Define unit parameters for the operational node.{% else %}Define a new operation within {{ project.name }}.{% endif %}</p>
     </div>
 
-    <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <form method="post" action="{% if task %}/tasks/{{ task.id }}/edit{% else %}/projects/{{ project.id }}/tasks/create{% endif %}" class="space-y-6">
-            
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Task Title</label>
-                <input type="text" name="title" placeholder="What needs to be done?" required value="{{ task.title if task else '' }}"
-                       class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Detailed Description</label>
-                <textarea name="description" rows="4" placeholder="Provide context, requirements, or instructions..."
-                          class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none resize-none">{{ task.description if task else '' }}</textarea>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="hud-border bg-surface-container-lowest/40 rounded-xl p-8 shadow-2xl">
+        <form method="POST" action="{% if task %}/tasks/{{ task.id }}/edit{% else %}/projects/{{ project.id }}/tasks/create{% endif %}" class="space-y-8">
+            <div class="space-y-6">
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Priority Level</label>
-                    <select name="priority" class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
-                        <option value="low" {% if task and task.priority == 'low' %}selected{% endif %}>Low Priority</option>
-                        <option value="medium" {% if not task or task.priority == 'medium' %}selected{% endif %}>Medium Priority</option>
-                        <option value="high" {% if task and task.priority == 'high' %}selected{% endif %}>High Priority</option>
-                    </select>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Directive_Title{% else %}Task Title{% endif %}</label>
+                    <input type="text" name="title" value="{{ task.title if task else '' }}" required 
+                           placeholder="What needs to be done?"
+                           class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
                 </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{{ t.priority }}</label>
+                        <select name="priority" 
+                                class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
+                            <option value="low" {% if task and task.priority == 'low' %}selected{% endif %}>{% if ui_mode == 'tactical' %}NORM_LVL{% else %}Low Priority{% endif %}</option>
+                            <option value="medium" {% if not task or task.priority == 'medium' %}selected{% endif %}>{% if ui_mode == 'tactical' %}WARN_LVL{% else %}Medium Priority{% endif %}</option>
+                            <option value="high" {% if task and task.priority == 'high' %}selected{% endif %}>{% if ui_mode == 'tactical' %}CRIT_LVL{% else %}High Priority{% endif %}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Temporal_Limit{% else %}Due Date{% endif %}</label>
+                        <input type="date" name="due_date" value="{{ task.due_date if task else '' }}"
+                               class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Target Due Date</label>
-                    <input type="date" name="due_date" value="{{ task.due_date if task else '' }}"
-                           class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Directive_Briefing{% else %}Description{% endif %}</label>
+                    <textarea name="description" rows="4" 
+                              placeholder="Define objectives..."
+                              class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm resize-none">{{ task.description if task else '' }}</textarea>
                 </div>
             </div>
 
-            <div class="pt-6 flex items-center gap-4">
-                <a href="/projects/{{ project.id }}" class="flex-1 py-4 text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-2xl font-bold hover:bg-slate-50 dark:hover:bg-slate-900 transition-all">Cancel</a>
-                <button type="submit" class="flex-[2] py-4 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700 shadow-xl shadow-brand-600/20 transition-all active:scale-[0.98]">
-                    {% if task %}Update Task{% else %}Create Task{% endif %}
+            <div class="pt-6 border-t border-outline-variant/20 flex gap-4">
+                <a href="/projects/{{ project.id }}" class="flex-1 px-6 py-4 border border-outline-variant text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 text-center rounded-lg transition-all">Cancel</a>
+                <button type="submit" class="flex-[2] py-4 bg-primary text-on-primary rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 shadow-xl transition-all active:scale-95">
+                    {% if ui_mode == 'tactical' %}Commit_Directive{% else %}Save Task{% endif %}
                 </button>
             </div>
         </form>

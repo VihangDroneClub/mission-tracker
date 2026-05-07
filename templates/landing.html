@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Mission Tracker // Deploy Excellence{% endblock %}
+{% block title %}Mission Tracker - {% if ui_mode == 'tactical' %}Deploy Excellence{% else %}Project Management{% endif %}{% endblock %}
 
 {% block content %}
-<div class="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden font-mono">
+<div class="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden {% if ui_mode == 'tactical' %}font-mono{% endif %}">
     <!-- Hero Background Animation Elements -->
     <div class="absolute inset-0 z-0 pointer-events-none">
         <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse"></div>
@@ -17,36 +17,40 @@
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-primary shadow-[0_0_8px_#8B5CF6]"></span>
             </span>
-            <span>Link Established // Operational v4.0.2</span>
+            <span>{% if ui_mode == 'tactical' %}Link Established // Operational v2.1{% else %}System Online // Version 2.1{% endif %}</span>
         </div>
 
         <h1 class="text-6xl md:text-8xl font-black text-on-surface tracking-tighter mb-8 leading-[0.9] uppercase italic animate-in fade-in slide-in-from-bottom-6 duration-1000 font-headline">
-            Precision <span class="text-primary glow-indicator-text">Mission</span><br/>
+            Precision <span class="text-primary">{% if ui_mode == 'tactical' %}Mission{% else %}Project{% endif %}</span><br/>
             Management.
         </h1>
 
         <p class="text-on-surface-variant text-lg md:text-xl uppercase tracking-[0.2em] mb-16 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 opacity-70">
+            {% if ui_mode == 'tactical' %}
             The mission-critical platform for elite flight units. Deploy directives, track telemetry, and optimize club performance.
+            {% else %}
+            The centralized platform for project coordination. Assign tasks, track progress, and optimize team performance.
+            {% endif %}
         </p>
 
         <div class="flex flex-col sm:flex-row items-center justify-center gap-8 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500">
             <a href="/signup" class="w-full sm:w-auto px-12 py-5 bg-primary text-on-primary font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 hover:shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all transform active:scale-95 rounded-sm">
-                Initialize_Pilot_ID
+                {% if ui_mode == 'tactical' %}Initialize_Pilot_ID{% else %}Sign Up Now{% endif %}
             </a>
             <a href="/login" class="w-full sm:w-auto px-12 py-5 border border-outline-variant text-on-surface-variant font-black text-xs uppercase tracking-[0.3em] hover:bg-surface-variant hover:text-on-surface transition-all transform active:scale-95 rounded-sm">
-                Access_Archive
+                {% if ui_mode == 'tactical' %}Access_Archive{% else %}Log In{% endif %}
             </a>
         </div>
     </div>
 
-    <!-- Feature HUD Elements -->
+    <!-- Feature Elements -->
     <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-700 px-6">
         <div class="hud-border p-10 bg-surface-container-lowest/40 relative group hover:hud-border-active transition-all rounded-xl overflow-hidden">
             <div class="text-primary mb-6">
                 <span class="material-symbols-outlined text-4xl">dashboard</span>
             </div>
-            <h3 class="text-on-surface font-bold uppercase tracking-widest mb-4 group-hover:text-primary transition-colors text-sm">Visual_Intel</h3>
-            <p class="text-on-surface-variant text-[10px] leading-relaxed uppercase tracking-widest opacity-60">High-density mission tracking with real-time telemetry and priority markers.</p>
+            <h3 class="text-on-surface font-bold uppercase tracking-widest mb-4 group-hover:text-primary transition-colors text-sm">{% if ui_mode == 'tactical' %}Visual_Intel{% else %}Visual Dashboard{% endif %}</h3>
+            <p class="text-on-surface-variant text-[10px] leading-relaxed uppercase tracking-widest opacity-60">{% if ui_mode == 'tactical' %}High-density mission tracking with real-time telemetry and priority markers.{% else %}Track your progress with clear visuals and real-time status updates.{% endif %}</p>
             <div class="absolute bottom-3 right-3 text-[8px] font-bold text-outline-variant">MOD_01</div>
         </div>
 
@@ -54,8 +58,8 @@
             <div class="text-tertiary mb-6">
                 <span class="material-symbols-outlined text-4xl">precision_manufacturing</span>
             </div>
-            <h3 class="text-on-surface font-bold uppercase tracking-widest mb-4 group-hover:text-tertiary transition-colors text-sm">Pilot_Sync</h3>
-            <p class="text-on-surface-variant text-[10px] leading-relaxed uppercase tracking-widest opacity-60">Tactical task allocation with encrypted audit logs for every command mutation.</p>
+            <h3 class="text-on-surface font-bold uppercase tracking-widest mb-4 group-hover:text-tertiary transition-colors text-sm">{% if ui_mode == 'tactical' %}Pilot_Sync{% else %}Team Sync{% endif %}</h3>
+            <p class="text-on-surface-variant text-[10px] leading-relaxed uppercase tracking-widest opacity-60">{% if ui_mode == 'tactical' %}Tactical task allocation with encrypted audit logs for every command mutation.{% else %}Assign tasks efficiently and maintain a complete history of all changes.{% endif %}</p>
             <div class="absolute bottom-3 right-3 text-[8px] font-bold text-outline-variant">MOD_02</div>
         </div>
 
@@ -63,8 +67,8 @@
             <div class="text-primary mb-6">
                 <span class="material-symbols-outlined text-4xl">database</span>
             </div>
-            <h3 class="text-on-surface font-bold uppercase tracking-widest mb-4 group-hover:text-primary transition-colors text-sm">Secure_Uplink</h3>
-            <p class="text-on-surface-variant text-[10px] leading-relaxed uppercase tracking-widest opacity-60">Integrated task attachments and synchronized comms for mission critical files.</p>
+            <h3 class="text-on-surface font-bold uppercase tracking-widest mb-4 group-hover:text-primary transition-colors text-sm">{% if ui_mode == 'tactical' %}Secure_Uplink{% else %}Secure Access{% endif %}</h3>
+            <p class="text-on-surface-variant text-[10px] leading-relaxed uppercase tracking-widest opacity-60">{% if ui_mode == 'tactical' %}Integrated task attachments and synchronized comms for mission critical files.{% else %}Securely manage files and communications within your organization.{% endif %}</p>
             <div class="absolute bottom-3 right-3 text-[8px] font-bold text-outline-variant">MOD_03</div>
         </div>
     </div>

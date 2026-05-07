@@ -1,66 +1,67 @@
 {% extends "base.html" %}
 
-{% block title %}Add User - Mission Tracker{% endblock %}
+{% block title %}Add {{ t.member }} - Mission Tracker{% endblock %}
+{% block header_title %}Personnel Provisioning{% endblock %}
 
 {% block content %}
 <div class="mb-8">
-    <a href="/admin/users" class="inline-flex items-center text-sm font-bold text-slate-500 hover:text-brand-600 transition-colors">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-        Back to Users
+    <a href="/admin/users" class="inline-flex items-center text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-sm mr-2">arrow_back</span>
+        {% if ui_mode == 'tactical' %}Abort_To_Personnel_Database{% else %}Back to Users{% endif %}
     </a>
 </div>
 
 <div class="max-w-2xl mx-auto">
-    <div class="mb-10 text-center">
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Add New User</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-2">Provision a new account for a club member or administrator.</p>
+    <div class="mb-10">
+        <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{% if ui_mode == 'tactical' %}Initialize_New_Pilot{% else %}Add New User{% endif %}</h1>
+        <p class="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">{% if ui_mode == 'tactical' %}Provision a new account for a club member or administrator.{% else %}Create a new user account with assigned permissions.{% endif %}</p>
     </div>
 
-    <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div class="hud-border bg-surface-container-lowest/40 rounded-xl p-8 shadow-2xl">
         {% if error %}
-            <div class="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-sm font-medium rounded-xl border border-rose-100 dark:border-rose-800/30 flex items-center gap-3">
-                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div class="mb-8 p-4 bg-error/10 text-error text-[10px] font-bold uppercase tracking-widest rounded-lg border border-error/30 flex items-center gap-3">
+                <span class="material-symbols-outlined text-sm">warning</span>
                 {{ error }}
             </div>
         {% endif %}
 
-        <form method="post" class="space-y-6">
+        <form method="post" class="space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Email Address</label>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Communication_Link (Email){% else %}Email Address{% endif %}</label>
                     <input type="email" name="email" placeholder="pilot@vihang.com" required
-                           class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                           class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Initial Password</label>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Access_Credential (Password){% else %}Initial Password{% endif %}</label>
                     <input type="password" name="password" placeholder="••••••••" required
-                           class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                           class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Full Display Name</label>
+                <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Pilot_Callsign (Display Name){% else %}Full Display Name{% endif %}</label>
                 <input type="text" name="display_name" placeholder="John Doe" required
-                       class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                       class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
             </div>
 
             <div>
-                <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Assign Role</label>
-                <div class="grid grid-cols-3 gap-3">
-                    {% for role in [('member', 'Member'), ('lead', 'Lead'), ('admin', 'Admin')] %}
+                <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Authority_Level_Assignment{% else %}Assign Role{% endif %}</label>
+                <div class="grid grid-cols-3 gap-4">
+                    {% for role_key in ['member', 'lead', 'admin'] %}
                     <label class="cursor-pointer group">
-                        <input type="radio" name="role" value="{{ role[0] }}" class="peer hidden" {% if loop.first %}checked{% endif %}>
-                        <div class="w-full text-center py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-500 border-2 border-transparent peer-checked:border-brand-500 peer-checked:bg-brand-50 dark:peer-checked:bg-brand-900/20 peer-checked:text-brand-600 transition-all">
-                            <span class="text-xs font-bold">{{ role[1] }}</span>
+                        <input type="radio" name="role" value="{{ role_key }}" class="peer hidden" {% if loop.first %}checked{% endif %}>
+                        <div class="w-full text-center py-4 rounded-lg bg-surface-container-low text-on-surface-variant border border-outline-variant/30 peer-checked:border-primary peer-checked:bg-primary/20 peer-checked:text-primary transition-all shadow-sm">
+                            <span class="text-[10px] font-bold uppercase tracking-widest">{{ t[role_key] }}</span>
                         </div>
                     </label>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="pt-6">
-                <button type="submit" class="w-full py-4 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700 shadow-xl shadow-brand-600/20 transition-all active:scale-[0.98]">
-                    Provision Account
+            <div class="pt-6 border-t border-outline-variant/20">
+                <button type="submit" class="w-full py-5 bg-primary text-on-primary rounded-lg font-bold text-[10px] uppercase tracking-[0.3em] hover:brightness-110 shadow-xl transition-all active:scale-[0.98]">
+                    {% if ui_mode == 'tactical' %}Initialize_Account{% else %}Provision Account{% endif %}
                 </button>
             </div>
         </form>

@@ -1,35 +1,35 @@
 {% extends "base.html" %}
-{% from "macros.html" import badge, status_badge, priority_badge, due_pill, empty_state with context %}
+{% from "macros.html" import badge, status_badge, priority_badge, due_pill, empty_state, avatar with context %}
 
-{% block title %}Search - Mission Tracker{% endblock %}
+{% block title %}{{ t.search }} - Mission Tracker{% endblock %}
 
 {% block content %}
 <div class="mb-10">
-    <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Search</h1>
-    <p class="text-slate-500 dark:text-slate-400 mt-1">Discover missions, projects, and tasks across the entire organization.</p>
+    <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{{ t.search }}</h1>
+    <p class="text-on-surface-variant uppercase tracking-widest mt-2">{% if ui_mode == 'tactical' %}Discover missions, projects, and tasks across the entire organization.{% else %}Search through all your missions, projects, and tasks.{% endif %}</p>
 </div>
 
 <!-- Search & Filter Form -->
-<form method="get" class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm mb-12">
+<form method="get" class="hud-border bg-surface-container-lowest/40 p-8 rounded-xl shadow-sm mb-12">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Text Query -->
         <div class="lg:col-span-2">
-            <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Keyword Search</label>
+            <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">{% if ui_mode == 'tactical' %}Keyword Search{% else %}Search Text{% endif %}</label>
             <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">search</span>
                 </div>
                 <input type="text" name="q" value="{{ query }}" placeholder="Search tasks, descriptions..."
-                       class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                       class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg pl-12 pr-4 py-3 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
             </div>
         </div>
 
         <!-- Mission Filter -->
         <div>
-            <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Mission</label>
+            <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">{{ t.mission }}</label>
             <select name="mission_id" onchange="this.form.submit()"
-                    class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
-                <option value="">-- All Missions --</option>
+                    class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
+                <option value="">-- All {{ t.mission }}s --</option>
                 {% for m in missions %}
                     <option value="{{ m.id }}" {% if selected_mission == m.id %}selected{% endif %}>{{ m.name }}</option>
                 {% endfor %}
@@ -38,10 +38,10 @@
 
         <!-- Project Filter -->
         <div>
-            <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Project</label>
+            <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">{{ t.project }}</label>
             <select name="project_id"
-                    class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
-                <option value="">-- All Projects --</option>
+                    class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
+                <option value="">-- All {{ t.project }}s --</option>
                 {% for p in projects %}
                     <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name }}</option>
                 {% endfor %}
@@ -50,32 +50,32 @@
 
         <!-- Status Filter -->
         <div>
-            <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Status</label>
+            <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">{{ t.status }}</label>
             <select name="status"
-                    class="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
-                <option value="" {% if not selected_status %}selected{% endif %}>-- Any Status --</option>
-                <option value="todo" {% if selected_status == 'todo' %}selected{% endif %}>To Do</option>
-                <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
-                <option value="done" {% if selected_status == 'done' %}selected{% endif %}>Done</option>
+                    class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
+                <option value="" {% if not selected_status %}selected{% endif %}>-- Any {{ t.status }} --</option>
+                <option value="todo" {% if selected_status == 'todo' %}selected{% endif %}>{{ t.todo }}</option>
+                <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>{{ t.in_progress }}</option>
+                <option value="done" {% if selected_status == 'done' %}selected{% endif %}>{{ t.done }}</option>
             </select>
         </div>
 
         <!-- Date Range -->
         <div class="lg:col-span-2">
-            <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Created Date Range</label>
+            <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">{% if ui_mode == 'tactical' %}Temporal Range{% else %}Date Range{% endif %}</label>
             <div class="flex items-center gap-3">
                 <input type="month" name="start_month" value="{{ start_month }}"
-                       class="flex-1 bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
-                <span class="text-slate-400 font-bold">to</span>
+                       class="flex-1 bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
+                <span class="text-on-surface-variant font-bold">to</span>
                 <input type="month" name="end_month" value="{{ end_month }}"
-                       class="flex-1 bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                       class="flex-1 bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm">
             </div>
         </div>
 
         <!-- Action Button -->
         <div class="flex items-end lg:col-span-1">
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700 shadow-xl shadow-brand-600/20 transition-all active:scale-[0.98]">
-                Search Operations
+            <button type="submit" class="w-full py-3 bg-primary text-on-primary rounded-lg font-bold hover:brightness-110 shadow-xl transition-all active:scale-[0.98] uppercase text-[10px] tracking-widest">
+                {% if ui_mode == 'tactical' %}Initiate Query{% else %}Search Now{% endif %}
             </button>
         </div>
     </div>
@@ -83,54 +83,49 @@
 
 <!-- Results Section -->
 {% if query or selected_mission or selected_project or selected_status or start_month or end_month %}
-    <div class="flex items-center justify-between mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Search Results</h2>
-        <span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-full">{{ results|length }} Matches</span>
+    <div class="flex items-center justify-between mb-8 border-b border-outline-variant/30 pb-4">
+        <h2 class="text-xl font-bold text-on-surface uppercase tracking-tight">{% if ui_mode == 'tactical' %}Found Matches{% else %}Search Results{% endif %}</h2>
+        <span class="px-3 py-1 bg-surface-container border border-outline-variant/30 text-on-surface-variant text-[10px] font-bold rounded">{{ results|length }} UNITS</span>
     </div>
 
     {% if results %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             {% for task in results %}
-                <div class="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 transition-all hover:border-brand-500/50 hover:shadow-xl hover:shadow-brand-500/5 flex flex-col relative overflow-hidden">
+                <div onclick="window.location='/tasks/{{ task.id }}'" 
+                     class="hud-border bg-surface-container-lowest/40 p-6 flex flex-col relative overflow-hidden transition-all hover:hud-border-active cursor-pointer rounded-xl group">
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex flex-col">
-                            <h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-brand-600 transition-colors leading-tight mb-2">
-                                <a href="/tasks/{{ task.id }}">{{ task.title }}</a>
+                            <h3 class="text-lg font-bold text-on-surface group-hover:text-primary transition-colors leading-tight mb-2 uppercase font-headline">
+                                {{ task.title }}
                             </h3>
-                            <div class="flex items-center text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                                <span>{{ task._mission_name if task._mission_name else 'Mission' }}</span>
-                                <svg class="w-3 h-3 mx-1.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                                <span class="text-slate-500 dark:text-slate-400">{{ task._project_name if task._project_name else 'Project' }}</span>
+                            <div class="flex items-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                                <span>{{ task._mission_name if task._mission_name else t.mission }}</span>
+                                <span class="mx-2 opacity-30">/</span>
+                                <span class="text-primary">{{ task._project_name if task._project_name else t.project }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                    <div class="mt-4 flex flex-wrap items-center gap-3">
                         {{ status_badge(task.status) }}
                         {{ priority_badge(task.priority) }}
                         {{ due_pill(task.due_date) }}
                     </div>
 
-                    <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
+                    <div class="mt-6 pt-4 border-t border-outline-variant/30 flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                                {{ username_map.get(task.assignee_id, 'Unknown')[:1].upper() }}
-                            </div>
-                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Assigned to {{ username_map.get(task.assignee_id, 'Unassigned') }}</span>
+                            {{ avatar({'username': username_map.get(task.assignee_id, '?')}, size=6) }}
+                            <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{% if ui_mode == 'tactical' %}Operative:{% else %}Assigned to:{% endif %} {{ username_map.get(task.assignee_id, 'Unassigned') }}</span>
                         </div>
-                        <a href="/tasks/{{ task.id }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors flex items-center">
-                            View Details
-                            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                        </a>
+                        <div class="text-[9px] font-bold text-primary group-hover:underline uppercase tracking-widest">
+                            {% if ui_mode == 'tactical' %}View_Data{% else %}View Details{% endif %}
+                        </div>
                     </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
-            {{ empty_state('No operations found matching your criteria.', '🔍') }}
-        </div>
+        {{ empty_state('No matching operations found.', 'search_off') }}
     {% endif %}
 {% endif %}
 {% endblock %}

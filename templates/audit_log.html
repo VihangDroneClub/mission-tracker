@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% from "macros.html" import badge with context %}
 
-{% block title %}Audit Log - Live Telemetry{% endblock %}
-{% block header_title %}System Audit Log{% endblock %}
+{% block title %}{{ t.audit_log }} - Mission Tracker{% endblock %}
+{% block header_title %}{{ t.audit_log }}{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">System Mutations</h1>
-            <p class="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">Full transparency of all mission-critical data modifications.</p>
+            <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{% if ui_mode == 'tactical' %}System Mutations{% else %}Audit Records{% endif %}</h1>
+            <p class="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">{% if ui_mode == 'tactical' %}Full transparency of all mission-critical data modifications.{% else %}A complete history of all changes made in the system.{% endif %}</p>
         </div>
         
         <div class="flex items-center gap-4 px-4 py-2 bg-surface-container border border-outline-variant/30 rounded-full">
-            <div class="w-1.5 h-1.5 bg-primary glow-indicator rounded-full animate-pulse"></div>
-            <span class="text-[10px] font-bold text-primary uppercase tracking-widest">{{ logs|length }} Total Events Captured</span>
+            {% if ui_mode == 'tactical' %}<div class="w-1.5 h-1.5 bg-primary glow-indicator rounded-full animate-pulse"></div>{% endif %}
+            <span class="text-[10px] font-bold text-primary uppercase tracking-widest">{{ logs|length }} Total Events</span>
         </div>
     </div>
 
@@ -24,14 +24,14 @@
                 <thead>
                     <tr class="bg-surface-container-low border-b border-outline-variant/30 text-[10px]">
                         <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">Timestamp</th>
-                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">Actor_ID</th>
-                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">Mutation_Type</th>
-                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">Entity_Details</th>
-                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">Payload</th>
-                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant text-right">Protocol</th>
+                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Actor_ID{% else %}User{% endif %}</th>
+                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Mutation_Type{% else %}Action{% endif %}</th>
+                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Entity_Details{% else %}Target{% endif %}</th>
+                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Payload{% else %}Changes{% endif %}</th>
+                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant text-right">{% if ui_mode == 'tactical' %}Protocol{% else %}Management{% endif %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-outline-variant/10 font-mono text-[11px]">
+                <tbody class="divide-y divide-outline-variant/10 {% if ui_mode == 'tactical' %}font-mono{% endif %} text-[11px]">
                     {% for log in logs %}
                     <tr class="hover:bg-surface-variant/20 transition-colors group">
                         <td class="px-6 py-5 whitespace-nowrap">
@@ -43,37 +43,38 @@
                                 <div class="w-7 h-7 rounded-full bg-surface-container-high border border-outline-variant/30 flex items-center justify-center text-[10px] font-black text-on-surface-variant group-hover:text-primary transition-colors">
                                     {{ (username_map.get(log.user_id, '??'))[:1].upper() }}
                                 </div>
-                                <span class="text-[10px] font-bold text-on-surface-variant group-hover:text-on-surface truncate max-w-[120px] uppercase tracking-tighter">{{ username_map.get(log.user_id, 'UNKNOWN_OP') }}</span>
+                                <span class="text-[10px] font-bold text-on-surface-variant group-hover:text-on-surface truncate max-w-[120px] uppercase tracking-tighter">{{ username_map.get(log.user_id, 'UNKNOWN') }}</span>
                             </div>
                         </td>
                         <td class="px-6 py-5">
+                            {% set action_text = log.action.replace('_', ' ') %}
                             {% if 'created' in log.action %}
-                                {{ badge(log.action.replace('_', ' '), 'green') }}
+                                {{ badge(action_text, 'green') }}
                             {% elif 'deleted' in log.action %}
-                                {{ badge(log.action.replace('_', ' '), 'red') }}
+                                {{ badge(action_text, 'red') }}
                             {% elif 'updated' in log.action or 'changed' in log.action %}
-                                {{ badge(log.action.replace('_', ' '), 'blue') }}
+                                {{ badge(action_text, 'blue') }}
                             {% else %}
-                                {{ badge(log.action.replace('_', ' '), 'gray') }}
+                                {{ badge(action_text, 'gray') }}
                             {% endif %}
                         </td>
                         <td class="px-6 py-5 whitespace-nowrap">
                             <div class="text-[10px] font-bold text-on-surface uppercase tracking-wide">{{ log.entity_type }}</div>
-                            <div class="text-[9px] font-medium text-outline mt-1 font-mono tracking-tighter opacity-50">#{{ log.entity_id[:8] }}</div>
+                            <div class="text-[9px] font-medium text-outline mt-1 {% if ui_mode == 'tactical' %}font-mono{% endif %} tracking-tighter opacity-50">#{{ log.entity_id[:8] }}</div>
                         </td>
                         <td class="px-6 py-5 min-w-[300px]">
                             <div class="space-y-2 opacity-60 group-hover:opacity-100 transition-opacity">
                                 {% if log.new_values and log.new_values != 'null' %}
                                 <div class="p-2 bg-primary/5 rounded border border-primary/10">
-                                    <span class="text-[8px] font-black uppercase text-primary mb-1 block">New_State</span>
-                                    <p class="text-[9px] font-mono text-on-surface-variant line-clamp-1 truncate">{{ log.new_values }}</p>
+                                    <span class="text-[8px] font-black uppercase text-primary mb-1 block">{% if ui_mode == 'tactical' %}New_State{% else %}New Values{% endif %}</span>
+                                    <p class="text-[9px] {% if ui_mode == 'tactical' %}font-mono{% endif %} text-on-surface-variant line-clamp-1 truncate">{{ log.new_values }}</p>
                                 </div>
                                 {% endif %}
                                 
                                 {% if log.old_values and log.old_values != 'null' %}
                                 <div class="p-2 bg-error/5 rounded border border-error/10">
-                                    <span class="text-[8px] font-black uppercase text-error mb-1 block">Prev_State</span>
-                                    <p class="text-[9px] font-mono text-on-surface-variant line-clamp-1 truncate">{{ log.old_values }}</p>
+                                    <span class="text-[8px] font-black uppercase text-error mb-1 block">{% if ui_mode == 'tactical' %}Prev_State{% else %}Old Values{% endif %}</span>
+                                    <p class="text-[9px] {% if ui_mode == 'tactical' %}font-mono{% endif %} text-on-surface-variant line-clamp-1 truncate">{{ log.old_values }}</p>
                                 </div>
                                 {% endif %}
                             </div>
@@ -82,11 +83,11 @@
                             {% if not log.action.startswith('reverted_') %}
                             <form action="/admin/undo/{{ log.id }}" method="post">
                                 <button type="submit" class="text-[9px] font-bold uppercase tracking-widest text-primary border border-primary/30 bg-primary/5 px-3 py-1.5 rounded hover:bg-primary hover:text-on-primary transition-all">
-                                    REVERT
+                                    {% if ui_mode == 'tactical' %}REVERT{% else %}Undo{% endif %}
                                 </button>
                             </form>
                             {% else %}
-                            <span class="text-[9px] font-bold text-outline uppercase tracking-widest italic opacity-50">SYNC_REVERTED</span>
+                            <span class="text-[9px] font-bold text-outline uppercase tracking-widest italic opacity-50">{% if ui_mode == 'tactical' %}SYNC_REVERTED{% else %}Reverted{% endif %}</span>
                             {% endif %}
                         </td>
                     </tr>

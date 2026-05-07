@@ -1,33 +1,33 @@
 {% if attachments %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     {% for att in attachments %}
-        <div class="group relative bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden transition-all hover:shadow-lg hover:border-brand-500/30">
+        <div class="group relative hud-border bg-surface-container-lowest/40 rounded-xl overflow-hidden transition-all hover:hud-border-active">
             {% if att.mime_type and att.mime_type.startswith('image/') %}
-                <div class="aspect-video w-full overflow-hidden bg-slate-200 dark:bg-slate-800">
-                    <img src="{{ att.signed_url }}" alt="{{ att.file_name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                <div class="aspect-video w-full overflow-hidden bg-surface-container">
+                    <img src="{{ att.signed_url }}" alt="{{ att.file_name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 {% if ui_mode == 'tactical' %}grayscale brightness-125{% endif %}">
                 </div>
             {% else %}
-                <div class="aspect-video w-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800">
-                    <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">{{ att.mime_type.split('/')[-1] if att.mime_type else 'FILE' }}</span>
+                <div class="aspect-video w-full flex flex-col items-center justify-center bg-surface-container">
+                    <span class="material-symbols-outlined text-4xl text-on-surface-variant/40">description</span>
+                    <span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant mt-2">{{ att.mime_type.split('/')[-1] if att.mime_type else 'FILE' }}</span>
                 </div>
             {% endif %}
             
-            <div class="p-3 flex items-center justify-between">
+            <div class="p-3 flex items-center justify-between bg-surface-container-low/50">
                 <div class="min-w-0 flex-1">
-                    <p class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate" title="{{ att.file_name }}">{{ att.file_name }}</p>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-500 font-medium">Uploaded by {{ username_map.get(att.uploader_id, 'Unknown') }}</p>
+                    <p class="text-[10px] font-bold text-on-surface truncate uppercase tracking-wide" title="{{ att.file_name }}">{{ att.file_name }}</p>
+                    <p class="text-[8px] text-on-surface-variant font-bold uppercase tracking-tighter opacity-60">{% if ui_mode == 'tactical' %}Uploaded_By:{% else %}By{% endif %} {{ username_map.get(att.uploader_id, 'Unknown') }}</p>
                 </div>
                 <div class="flex items-center gap-1 ml-2">
-                    <a href="{{ att.signed_url }}" target="_blank" class="p-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-500 hover:text-brand-600 shadow-sm transition-all border border-slate-100 dark:border-slate-700">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <a href="{{ att.signed_url }}" target="_blank" class="p-1.5 rounded bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-all border border-primary/20">
+                        <span class="material-symbols-outlined text-sm">download</span>
                     </a>
                     {% if user.role in ('lead', 'admin') %}
                     <form hx-post="/tasks/{{ task.id }}/attachments/{{ att.id }}/delete" 
                           hx-target="#attachment-list" 
                           hx-swap="innerHTML">
-                        <button type="submit" class="p-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-600 shadow-sm transition-all border border-slate-100 dark:border-slate-700">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <button type="submit" class="p-1.5 rounded bg-error/10 text-error hover:bg-error hover:text-on-error transition-all border border-error/20">
+                            <span class="material-symbols-outlined text-sm">delete</span>
                         </button>
                     </form>
                     {% endif %}
@@ -37,7 +37,7 @@
     {% endfor %}
 </div>
 {% else %}
-<div class="py-10 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium italic">No files attached yet.</p>
+<div class="py-10 text-center border border-dashed border-outline-variant/30 rounded-xl bg-surface-container-lowest/20">
+    <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest italic opacity-50">No files attached yet.</p>
 </div>
 {% endif %}

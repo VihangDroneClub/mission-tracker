@@ -1,18 +1,19 @@
 {% extends "base.html" %}
 {% from "macros.html" import badge, status_badge, due_pill, priority_badge, empty_state with context %}
 
-{% block title %}My Directives - Task Inbox{% endblock %}
-{% block header_title %}Personal Inbox{% endblock %}
+{% block title %}My {{ t.tasks }} - Mission Tracker{% endblock %}
+{% block header_title %}Personal {{ t.tasks }}{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
     <div>
-        <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">Your Directives</h1>
-        <p class="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">Manage and track your active mission assignments.</p>
+        <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">Your {{ t.tasks }}</h1>
+        <p class="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">{% if ui_mode == 'tactical' %}Manage and track your active mission assignments.{% else %}Track and manage your assigned tasks.{% endif %}</p>
     </div>
 
     <div class="space-y-10">
-    {% for title, task_list in groups %}
+    {% for title_key, task_list in groups %}
+        {% set title = t[title_key] if title_key in t else title_key %}
         {% if task_list %}
         <div x-data="{ open: true }" class="animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: {{ loop.index0 * 100 }}ms">
             <button @click="open = !open" class="group flex items-center justify-between w-full text-left mb-6">
@@ -58,7 +59,7 @@
     </div>
 
     {% if not groups[0][1] and not groups[1][1] and not groups[2][1] and not groups[3][1] and not groups[4][1] %}
-        {{ empty_state('No active directives assigned to your pilot ID.', 'inbox_customize') }}
+        {{ empty_state('No tasks assigned to you.', 'inbox_customize') }}
     {% endif %}
 </div>
 {% endblock %}

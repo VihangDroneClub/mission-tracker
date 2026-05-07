@@ -181,3 +181,26 @@ CREATE POLICY "Org members can manage assignees" ON public.task_assignees FOR AL
     SELECT 1 FROM tasks t JOIN profiles p ON t.organization_id = p.organization_id 
     WHERE t.id = task_id AND p.id = auth.uid()
 ));
+
+-- 6. Trigger to sync profiles with auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, username)
+  VALUES (new.id, new.email, 'vhng_' || substr(new.id::text, 1, 8));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 7. Additional Profiles Policies
+DROP POLICY IF EXISTS "Admins can view all profiles in their org" ON public.profiles;
+CREATE POLICY "Admins can view all profiles in their org" ON public.profiles FOR SELECT USING (
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' 
+    AND 
+    (SELECT organization_id FROM public.profiles WHERE id = auth.uid()) = organization_id
+);

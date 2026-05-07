@@ -1,30 +1,44 @@
 {% extends "base.html" %}
 {% from "macros.html" import badge, status_badge with context %}
 
-{% block title %}Command Center - Dashboard{% endblock %}
-{% block header_title %}Command Center{% endblock %}
+{% block title %}{{ t.dashboard }} - Mission Tracker{% endblock %}
+{% block header_title %}{{ t.dashboard }}{% endblock %}
 
 {% block content %}
 <section class="grid grid-cols-12 gap-6 auto-rows-min">
-    <!-- Telemetry Main View -->
+    <!-- Main View -->
     <div class="col-span-12 lg:col-span-8 space-y-6">
+        <!-- Alert Strip -->
+        {% if alerts %}
+        <div class="hud-border bg-error/10 border-error/30 p-4 rounded-xl flex items-center gap-4 animate-pulse">
+            <span class="material-symbols-outlined text-error">warning</span>
+            <div class="flex-1">
+                <p class="text-[10px] font-bold text-error uppercase tracking-widest">
+                    Critical Alert: {{ alerts|length }} directives require immediate attention (Overdue or Due Soon).
+                </p>
+            </div>
+            <a href="/my-tasks" class="text-[9px] font-bold text-error underline uppercase tracking-widest hover:text-white transition-colors">Resolve Now</a>
+        </div>
+        {% endif %}
+
         <div class="hud-border bg-surface-container-lowest/40 p-6 relative overflow-hidden rounded-xl">
             <div class="flex justify-between items-end mb-6">
                 <div>
-                    <span class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest">Global Telemetry</span>
-                    <h3 class="text-primary text-2xl font-headline font-bold uppercase tracking-tight">Mission Activity Flow</h3>
+                    <span class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest">{% if ui_mode == 'tactical' %}Global Telemetry{% else %}Activity Overview{% endif %}</span>
+                    <h3 class="text-primary text-2xl font-headline font-bold uppercase tracking-tight">{{ t.mission }} Activity Flow</h3>
                 </div>
                 <div class="text-right">
                     <span class="text-tertiary text-xl font-bold font-mono">{{ missions|length }} ACTIVE</span>
-                    <p class="text-[9px] text-on-tertiary-fixed font-bold tracking-widest uppercase">Node Efficiency 98.4%</p>
+                    <p class="text-[9px] text-on-tertiary-fixed font-bold tracking-widest uppercase">{% if ui_mode == 'tactical' %}Node Efficiency 98.4%{% else %}System Status: Optimal{% endif %}</p>
                 </div>
             </div>
             
-            <!-- Re-purposing the bar chart for mission task counts -->
+            <!-- Mission task counts chart -->
             <div class="h-48 w-full flex items-end gap-2 px-1">
                 {% for item in missions %}
-                    {% set height = (item.task_count / 10 * 100)|int if item.task_count < 10 else 100 %}
-                    <div class="flex-1 bg-primary/20 h-[{{ height }}%] hover:bg-primary/40 transition-all cursor-crosshair border-t border-primary relative group rounded-t-sm" 
+                    {% set max_tasks = missions|map(attribute='task_count')|max if missions else 10 %}
+                    {% set height = (item.task_count / max_tasks * 100)|int if max_tasks > 0 else 0 %}
+                    <div class="flex-1 bg-primary/20 h-[{{ height }}%] hover:bg-primary/40 transition-all cursor-pointer border-t border-primary relative group rounded-t-sm" 
                          onclick="window.location='/missions/{{ item.mission.id }}'">
                         <span class="hidden group-hover:block absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-2 py-1 font-bold whitespace-nowrap rounded shadow-lg z-10">
                             {{ item.mission.name }}: {{ item.task_count }}
@@ -35,7 +49,7 @@
                 {% endfor %}
             </div>
             <div class="flex justify-between mt-4 border-t border-outline-variant/30 pt-4 text-[9px] text-on-surface-variant font-bold uppercase tracking-widest">
-                <span>Database Alpha</span>
+                <span>{% if ui_mode == 'tactical' %}Database Alpha{% else %}Data Sector 1{% endif %}</span>
                 <span>Signal Stable</span>
                 <span>{{ today }}</span>
             </div>
@@ -45,8 +59,10 @@
             <!-- Mission Status -->
             <div class="hud-border bg-surface-container-lowest/40 p-5 rounded-xl">
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">Operational Status</span>
+                    <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">{{ t.status }}</span>
+                    {% if user.role == 'admin' %}
                     <a href="/admin/missions/create" class="material-symbols-outlined text-sm text-on-surface-variant hover:text-primary transition-colors">add_circle</a>
+                    {% endif %}
                 </div>
                 <div class="space-y-3">
                     {% for item in missions[:3] %}
@@ -54,31 +70,31 @@
                          onclick="window.location='/missions/{{ item.mission.id }}'">
                         <div>
                             <h4 class="text-xs font-bold uppercase tracking-wide">{{ item.mission.name }}</h4>
-                            <p class="text-[9px] text-on-surface-variant uppercase mt-1">{{ item.project_count }} Projects Detected</p>
+                            <p class="text-[9px] text-on-surface-variant uppercase mt-1">{{ item.project_count }} {{ t.project }}s</p>
                         </div>
                         <div class="text-right">
-                            <span class="text-[10px] text-primary font-bold">{{ item.task_count }} UNT</span>
+                            <span class="text-[10px] text-primary font-bold">{{ item.task_count }} {{ t.task[:3].upper() if ui_mode == 'tactical' else 'Tasks' }}</span>
                             <div class="w-16 h-1 bg-surface-variant mt-1 rounded-full overflow-hidden">
                                 <div class="h-full bg-primary" style="width: 70%"></div>
                             </div>
                         </div>
                     </div>
                     {% else %}
-                    <p class="text-[10px] text-on-surface-variant italic">NO MISSIONS DEPLOYED</p>
+                    <p class="text-[10px] text-on-surface-variant italic">NO {{ t.mission.upper() }}S DEPLOYED</p>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Fleet Stats (Quick Access) -->
+            <!-- Stats -->
             <div class="hud-border bg-surface-container-lowest/40 p-5 rounded-xl">
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">Resource Allocation</span>
+                    <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">{% if ui_mode == 'tactical' %}Resource Allocation{% else %}Quick Stats{% endif %}</span>
                     <span class="material-symbols-outlined text-sm text-on-surface-variant">rocket_launch</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
-                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Total_Tasks</span>
-                        <span class="text-2xl font-bold font-mono">{{ missions|sum(attribute='task_count') if missions else 0 }}</span>
+                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Total_{{ t.tasks }}</span>
+                        <span class="text-2xl font-bold font-mono">{{ stats.total_tasks or 0 }}</span>
                         <div class="flex gap-1 mt-1">
                             <div class="w-1.5 h-1.5 bg-primary glow-indicator rounded-full"></div>
                             <div class="w-1.5 h-1.5 bg-primary/20 rounded-full"></div>
@@ -87,11 +103,19 @@
                     </div>
                     <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
                         <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Active_Users</span>
-                        <span class="text-2xl font-bold font-mono text-tertiary">--</span>
+                        <span class="text-2xl font-bold font-mono text-tertiary">{{ stats.active_users or 0 }}</span>
                         <div class="flex gap-1 mt-1">
                             <div class="w-1.5 h-1.5 bg-tertiary glow-indicator rounded-full shadow-[0_0_8px_#4cd7f6]"></div>
                             <div class="w-1.5 h-1.5 bg-tertiary/20 rounded-full"></div>
                         </div>
+                    </div>
+                    <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
+                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Done_This_Month</span>
+                        <span class="text-2xl font-bold font-mono text-green-400">{{ stats.completed_this_month or 0 }}</span>
+                    </div>
+                    <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
+                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Overdue_Alerts</span>
+                        <span class="text-2xl font-bold font-mono text-error">{{ stats.overdue_count or 0 }}</span>
                     </div>
                 </div>
             </div>
@@ -102,27 +126,26 @@
     <div class="col-span-12 lg:col-span-4 space-y-6">
         <div class="hud-border bg-surface-container-lowest/40 flex flex-col h-full rounded-xl overflow-hidden min-h-[400px]">
             <div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
-                <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">Recent Activity Log</span>
+                <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">{% if ui_mode == 'tactical' %}Recent Activity Log{% else %}Recent Activity{% endif %}</span>
                 <div class="flex gap-2 items-center">
                     <div class="w-1.5 h-1.5 bg-primary glow-indicator rounded-full animate-pulse"></div>
-                    <span class="text-[8px] text-on-surface font-bold tracking-widest uppercase">Streaming</span>
+                    <span class="text-[8px] text-on-surface font-bold tracking-widest uppercase">{% if ui_mode == 'tactical' %}Streaming{% else %}Live{% endif %}</span>
                 </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 font-mono text-[10px]">
-                <!-- We will populate this with actual audit logs in a future pass -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 {% if ui_mode == 'tactical' %}font-mono{% endif %} text-[10px]">
                 <div class="flex gap-3 text-on-surface-variant border-l border-primary/30 pl-3">
                     <span class="text-primary opacity-60">[{{ today }}]</span>
                     <p><span class="text-primary font-bold uppercase">AUTH:</span> Session initialized successfully.</p>
                 </div>
                 <div class="flex gap-3 text-on-surface-variant border-l border-tertiary/30 pl-3">
                     <span class="text-tertiary opacity-60">[00:00:15]</span>
-                    <p><span class="text-tertiary font-bold uppercase">INFO:</span> Command center interface synchronized.</p>
+                    <p><span class="text-tertiary font-bold uppercase">INFO:</span> {{ t.dashboard }} interface synchronized.</p>
                 </div>
                 {% if not missions %}
                 <div class="flex gap-3 text-error border-l border-error/30 pl-3">
                     <span class="opacity-60">[WARN]</span>
-                    <p><span class="font-bold uppercase">DATA:</span> No mission data detected in local sector.</p>
+                    <p><span class="font-bold uppercase">DATA:</span> No {{ t.mission }} data detected.</p>
                 </div>
                 {% endif %}
             </div>
@@ -130,21 +153,21 @@
             <div class="p-4 bg-surface-container border-t border-outline-variant">
                 <div class="flex gap-2 items-center">
                     <span class="text-primary text-[11px] font-bold">&gt;</span>
-                    <input class="bg-transparent border-none p-0 text-[10px] font-mono focus:ring-0 w-full placeholder:text-on-surface-variant/30 text-primary" 
-                           placeholder="INITIATE COMMAND..." type="text"/>
+                    <input class="bg-transparent border-none p-0 text-[10px] {% if ui_mode == 'tactical' %}font-mono{% endif %} focus:ring-0 w-full placeholder:text-on-surface-variant/30 text-primary" 
+                           placeholder="{% if ui_mode == 'tactical' %}INITIATE COMMAND...{% else %}Enter command...{% endif %}" type="text"/>
                 </div>
             </div>
         </div>
 
         <div class="hud-border bg-surface-container-lowest/40 p-4 rounded-xl">
-            <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-4 block">Operation Parameters</span>
+            <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-4 block">{% if ui_mode == 'tactical' %}Operation Parameters{% else %}System Health{% endif %}</span>
             <div class="space-y-4">
                 <div class="flex justify-between items-center text-[10px]">
-                    <span class="text-on-surface-variant uppercase tracking-widest">Encryption</span>
+                    <span class="text-on-surface-variant uppercase tracking-widest">{% if ui_mode == 'tactical' %}Encryption{% else %}Security{% endif %}</span>
                     <span class="font-bold text-tertiary">AES-256-X</span>
                 </div>
                 <div class="flex justify-between items-center text-[10px]">
-                    <span class="text-on-surface-variant uppercase tracking-widest">Network_Link</span>
+                    <span class="text-on-surface-variant uppercase tracking-widest">Connection</span>
                     <span class="font-bold text-primary">STABLE</span>
                 </div>
                 <div class="w-full bg-surface-variant h-1 rounded-full overflow-hidden">

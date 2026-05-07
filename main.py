@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from database import supabase
 import auth
 from templates_utils import render_template
-from routers import auth as auth_router, missions, projects, tasks, admin, dashboard
+from routers import auth as auth_router, missions, projects, tasks, admin, dashboard, settings
 
 load_dotenv()
 app = FastAPI(title="Mission Tracker")
@@ -23,6 +23,7 @@ app.include_router(projects.router)
 app.include_router(tasks.router)
 app.include_router(admin.router)
 app.include_router(dashboard.router)
+app.include_router(settings.router)
 
 @app.get("/")
 async def home(request: Request):

@@ -10,6 +10,7 @@ router = APIRouter(tags=["dashboard"])
 @router.get("/dashboard")
 async def dashboard(request: Request, user: dict = Depends(get_current_user)):
     org_id = user.get("organization_id")
+    today = date.today()
     
     try:
         # Optimized fetch to fix N+1
@@ -23,10 +24,16 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
             projects_query = projects_query.eq("organization_id", org_id)
         projects_data = projects_query.execute().data or []
         
-        tasks_query = supabase.table("tasks").select("id, project_id")
+        tasks_query = supabase.table("tasks").select("*")
         if org_id:
             tasks_query = tasks_query.eq("organization_id", org_id)
         tasks_data = tasks_query.execute().data or []
+        
+        profiles_query = supabase.table("profiles").select("id", count="exact")
+        if org_id:
+            profiles_query = profiles_query.eq("organization_id", org_id)
+        profiles_res = profiles_query.execute()
+        active_users_count = profiles_res.count if hasattr(profiles_res, 'count') else len(profiles_res.data)
         
         project_map = {} 
         for p in projects_data:
@@ -36,9 +43,31 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
             project_map[mid].append(p["id"])
             
         task_map = {}
+        overdue_tasks = []
+        due_soon_tasks = []
+        completed_this_month = 0
+        
+        this_month_start = date(today.year, today.month, 1).isoformat()
+        
         for t in tasks_data:
             pid = t["project_id"]
             task_map[pid] = task_map.get(pid, 0) + 1
+            
+            # Statistics & Alerts logic
+            if t["status"] == "done":
+                if t.get("updated_at") and t["updated_at"] >= this_month_start:
+                    completed_this_month += 1
+            else:
+                if t.get("due_date"):
+                    try:
+                        due = date.fromisoformat(t["due_date"])
+                        diff = (due - today).days
+                        if diff < 0:
+                            overdue_tasks.append(t)
+                        elif 0 <= diff <= 3:
+                            due_soon_tasks.append(t)
+                    except:
+                        pass
             
         mission_stats = []
         for m in missions_data:
@@ -50,10 +79,20 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
                 "task_count": t_count
             })
             
-        return render_template("dashboard.html", request, user=user, missions=mission_stats)
+        stats = {
+            "total_tasks": len(tasks_data),
+            "completed_this_month": completed_this_month,
+            "overdue_count": len(overdue_tasks),
+            "active_users": active_users_count
+        }
+            
+        return render_template("dashboard.html", request, user=user, 
+                               missions=mission_stats, 
+                               stats=stats,
+                               alerts=overdue_tasks + due_soon_tasks)
     except Exception as e:
         # Fallback for migration/initial setup issues
-        return render_template("dashboard.html", request, user=user, missions=[], error=str(e))
+        return render_template("dashboard.html", request, user=user, missions=[], stats={}, alerts=[], error=str(e))
 
 @router.get("/my-tasks")
 async def my_tasks(request: Request, user: dict = Depends(get_current_user)):
@@ -90,11 +129,11 @@ async def my_tasks(request: Request, user: dict = Depends(get_current_user)):
         else:
             no_due.append(t)
     groups = [
-        ("Overdue", overdue),
-        ("Due Today", due_today),
-        ("Due This Week", due_this_week),
-        ("Upcoming", upcoming),
-        ("No Due Date", no_due),
+        ("overdue", overdue),
+        ("due_today", due_today),
+        ("due_this_week", due_this_week),
+        ("upcoming", upcoming),
+        ("no_due", no_due),
     ]
     return render_template("my_tasks.html", request, user=user, groups=groups, username_map=username_map)
 

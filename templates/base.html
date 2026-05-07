@@ -1,19 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="{% if theme == 'dark' %}dark{% endif %}">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>{% block title %}Mission Tracker{% endblock %}</title>
     
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
     <style>
+        :root {
+            --font-main: {% if ui_mode == 'tactical' %}'JetBrains Mono', monospace{% else %}'Inter', sans-serif{% endif %};
+        }
         body {
-            background-color: #050505;
-            color: #e5e2e1;
-            font-family: 'JetBrains Mono', monospace;
+            background-color: {% if theme == 'dark' %}#050505{% else %}#f8fafc{% endif %};
+            color: {% if theme == 'dark' %}#e5e2e1{% else %}#0f172a{% endif %};
+            font-family: var(--font-main);
         }
         .scanline-overlay {
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
@@ -22,7 +25,7 @@
             opacity: 0.05;
         }
         .hud-border {
-            border: 1px solid #1E1B4B;
+            border: 1px solid {% if theme == 'dark' %}#1E1B4B{% else %}#e2e8f0{% endif %};
         }
         .hud-border-active {
             border: 1px solid #8B5CF6;
@@ -36,9 +39,9 @@
         }
         [x-cloak] { display: none !important; }
         
-        /* Custom Scrollbar for SaaS look */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: #131313; }
+        ::-webkit-scrollbar-track { background: {% if theme == 'dark' %}#131313{% else %}#f1f5f9{% endif %}; }
         ::-webkit-scrollbar-thumb { background: #3c0091; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #d0bcff; }
     </style>
@@ -49,51 +52,51 @@
           theme: {
             extend: {
               "colors": {
-                      "surface-container-high": "#2a2a2a",
-                      "surface-container-lowest": "#0e0e0e",
+                      "surface-container-high": "{% if theme == 'dark' %}#2a2a2a{% else %}#e2e8f0{% endif %}",
+                      "surface-container-lowest": "{% if theme == 'dark' %}#0e0e0e{% else %}#ffffff{% endif %}",
                       "inverse-on-surface": "#313030",
                       "on-primary-fixed": "#23005c",
                       "tertiary-fixed-dim": "#4cd7f6",
                       "on-tertiary-fixed-variant": "#004e5c",
                       "on-tertiary": "#003640",
                       "primary-container": "#a078ff",
-                      "surface": "#131313",
+                      "surface": "{% if theme == 'dark' %}#131313{% else %}#ffffff{% endif %}",
                       "on-tertiary-container": "#002f38",
                       "tertiary-container": "#009eb9",
                       "secondary-fixed-dim": "#c3c0ff",
                       "secondary-fixed": "#e3dfff",
                       "on-error": "#690005",
                       "primary-fixed": "#e9ddff",
-                      "on-surface-variant": "#cbc3d7",
+                      "on-surface-variant": "{% if theme == 'dark' %}#cbc3d7{% else %}#64748b{% endif %}",
                       "on-tertiary-fixed": "#001f26",
                       "on-primary-container": "#340080",
                       "on-error-container": "#ffdad6",
-                      "surface-dim": "#131313",
-                      "secondary-container": "#3a2dc2",
-                      "surface-variant": "#353534",
-                      "outline": "#958ea0",
+                      "surface-dim": "{% if theme == 'dark' %}#131313{% else %}#f1f5f9{% endif %}",
+                      "secondary-container": "{% if theme == 'dark' %}#3a2dc2{% else %}#e0e7ff{% endif %}",
+                      "surface-variant": "{% if theme == 'dark' %}#353534{% else %}#f1f5f9{% endif %}",
+                      "outline": "{% if theme == 'dark' %}#958ea0{% else %}#94a3b8{% endif %}",
                       "inverse-surface": "#e5e2e1",
-                      "background": "#131313",
+                      "background": "{% if theme == 'dark' %}#131313{% else %}#f8fafc{% endif %}",
                       "inverse-primary": "#6d3bd7",
                       "secondary": "#c3c0ff",
                       "primary": "#d0bcff",
                       "surface-tint": "#d0bcff",
-                      "outline-variant": "#494454",
+                      "outline-variant": "{% if theme == 'dark' %}#494454{% else %}#cbd5e1{% endif %}",
                       "error-container": "#93000a",
-                      "on-secondary-container": "#b4b0ff",
-                      "on-background": "#e5e2e1",
-                      "surface-container-low": "#1c1b1b",
+                      "on-secondary-container": "{% if theme == 'dark' %}#b4b0ff{% else %}#312e81{% endif %}",
+                      "on-background": "{% if theme == 'dark' %}#e5e2e1{% else %}#0f172a{% endif %}",
+                      "surface-container-low": "{% if theme == 'dark' %}#1c1b1b{% else %}#f1f5f9{% endif %}",
                       "on-primary-fixed-variant": "#5516be",
                       "primary-fixed-dim": "#d0bcff",
                       "error": "#ffb4ab",
                       "on-secondary": "#1f00a4",
                       "on-secondary-fixed": "#100069",
                       "on-primary": "#3c0091",
-                      "surface-container": "#201f1f",
+                      "surface-container": "{% if theme == 'dark' %}#201f1f{% else %}#f1f5f9{% endif %}",
                       "on-secondary-fixed-variant": "#372abf",
                       "surface-bright": "#3a3939",
-                      "on-surface": "#e5e2e1",
-                      "surface-container-highest": "#353534",
+                      "on-surface": "{% if theme == 'dark' %}#e5e2e1{% else %}#0f172a{% endif %}",
+                      "surface-container-highest": "{% if theme == 'dark' %}#353534{% else %}#cbd5e1{% endif %}",
                       "tertiary": "#4cd7f6",
                       "tertiary-fixed": "#acedff"
               },
@@ -115,9 +118,12 @@
     
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
-<body class="flex min-h-screen bg-background text-on-background font-mono">
+<body class="flex min-h-screen bg-background text-on-background {% if ui_mode == 'tactical' %}font-mono uppercase{% else %}font-sans{% endif %}">
+    {% if ui_mode == 'tactical' %}
     <div class="scanline-overlay fixed inset-0 z-[100] opacity-10 pointer-events-none"></div>
+    {% endif %}
 
     {% if user %}
     <!-- Sidebar -->
@@ -129,7 +135,7 @@
                 </div>
                 <div>
                     <h1 class="font-headline text-primary font-bold text-xl tracking-tighter uppercase">Mission</h1>
-                    <p class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em]">Operational OS v2.1</p>
+                    <p class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em]">{% if ui_mode == 'tactical' %}Operational OS v2.1{% else %}Project Management{% endif %}</p>
                 </div>
             </div>
         </div>
@@ -137,7 +143,7 @@
         <nav class="flex-1 flex flex-col gap-1 px-2">
             <a href="/dashboard" class="flex items-center gap-3 {% if request.url.path == '/dashboard' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary shadow-[0_0_12px_rgba(139,92,246,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50{% endif %} px-4 py-3 text-xs uppercase tracking-widest transition-all">
                 <span class="material-symbols-outlined text-lg">dashboard</span>
-                Dashboard
+                {{ t.dashboard }}
             </a>
             <a href="/my-tasks" class="flex items-center gap-3 {% if request.url.path == '/my-tasks' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary shadow-[0_0_12px_rgba(139,92,246,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50{% endif %} px-4 py-3 text-xs uppercase tracking-widest transition-all">
                 <span class="material-symbols-outlined text-lg">inbox</span>
@@ -145,11 +151,11 @@
             </a>
             <a href="/search" class="flex items-center gap-3 {% if request.url.path == '/search' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary shadow-[0_0_12px_rgba(139,92,246,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50{% endif %} px-4 py-3 text-xs uppercase tracking-widest transition-all">
                 <span class="material-symbols-outlined text-lg">search</span>
-                Search
+                {{ t.search }}
             </a>
             <a href="/progress" class="flex items-center gap-3 {% if request.url.path == '/progress' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary shadow-[0_0_12px_rgba(139,92,246,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50{% endif %} px-4 py-3 text-xs uppercase tracking-widest transition-all">
                 <span class="material-symbols-outlined text-lg">monitoring</span>
-                Analytics
+                {{ t.analytics }}
             </a>
             
             {% if user.role == 'admin' %}
@@ -162,12 +168,36 @@
             </a>
             <a href="/admin/audit-log" class="flex items-center gap-3 {% if '/admin/audit-log' in request.url.path %}bg-secondary-container text-on-secondary-container border-r-4 border-primary shadow-[0_0_12px_rgba(139,92,246,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50{% endif %} px-4 py-3 text-xs uppercase tracking-widest transition-all">
                 <span class="material-symbols-outlined text-lg">history_edu</span>
-                Audit Log
+                {{ t.audit_log }}
             </a>
             {% endif %}
         </nav>
 
-        <div class="mt-auto px-4 pt-4 border-t border-outline-variant">
+        <!-- Settings Toggles -->
+        <div class="px-4 py-4 border-t border-outline-variant bg-surface-container-low/50">
+            <p class="text-[9px] font-bold text-outline uppercase tracking-widest mb-3">System Preferences</p>
+            <form action="/settings/preferences" method="POST" class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-bold text-on-surface-variant uppercase">Theme</span>
+                    <div class="flex bg-surface-container p-0.5 rounded border border-outline-variant/30">
+                        <button type="submit" name="theme" value="dark" class="px-2 py-1 text-[8px] font-bold rounded {% if theme == 'dark' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">DARK</button>
+                        <button type="submit" name="theme" value="light" class="px-2 py-1 text-[8px] font-bold rounded {% if theme == 'light' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">LIGHT</button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-bold text-on-surface-variant uppercase">Mode</span>
+                    <div class="flex bg-surface-container p-0.5 rounded border border-outline-variant/30">
+                        <button type="submit" name="ui_mode" value="tactical" class="px-2 py-1 text-[8px] font-bold rounded {% if ui_mode == 'tactical' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">TAC</button>
+                        <button type="submit" name="ui_mode" value="standard" class="px-2 py-1 text-[8px] font-bold rounded {% if ui_mode == 'standard' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">STD</button>
+                    </div>
+                </div>
+                <!-- Hidden inputs to preserve the other value when one is toggled -->
+                <input type="hidden" name="theme" value="{{ theme }}">
+                <input type="hidden" name="ui_mode" value="{{ ui_mode }}">
+            </form>
+        </div>
+
+        <div class="px-4 pt-4 border-t border-outline-variant">
             <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-3 px-2 py-3 mb-2 bg-surface-container rounded-lg border border-outline-variant/30">
                     <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-bold text-xs">
@@ -179,7 +209,7 @@
                     </div>
                 </div>
                 <a href="/logout" class="flex items-center gap-3 text-error hover:bg-error/10 px-3 py-2 text-[11px] uppercase tracking-widest transition-colors rounded-lg">
-                    <span class="material-symbols-outlined text-sm">power_settings_new</span> Terminate Session
+                    <span class="material-symbols-outlined text-sm">power_settings_new</span> {% if ui_mode == 'tactical' %}Terminate Session{% else %}Logout{% endif %}
                 </a>
             </div>
         </div>
@@ -190,17 +220,19 @@
         {% if user %}
         <header class="flex justify-between items-center w-full px-8 h-16 sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant shadow-[0_0_8px_rgba(139,92,246,0.1)]">
             <div class="flex items-center gap-4">
-                <h2 class="font-headline text-primary tracking-tighter uppercase text-lg">{% block header_title %}Command Center{% endblock %}</h2>
+                <h2 class="font-headline text-primary tracking-tighter uppercase text-lg">{% block header_title %}{{ t.dashboard }}{% endblock %}</h2>
+                {% if ui_mode == 'tactical' %}
                 <div class="flex items-center gap-2 px-3 py-1 bg-surface-container border border-primary/20 rounded">
                     <div class="w-1.5 h-1.5 rounded-full bg-primary glow-indicator animate-pulse"></div>
                     <span class="text-[9px] font-bold text-primary uppercase tracking-widest">Active Link</span>
                 </div>
+                {% endif %}
             </div>
             
             <div class="flex items-center gap-4">
                 <div class="relative hidden lg:block">
                     <form action="/search" method="get">
-                        <input name="q" class="bg-surface-container-low border border-outline-variant text-[11px] text-on-surface px-8 py-1.5 focus:border-primary focus:ring-0 transition-all w-64 rounded" placeholder="QUERY DATABASE..." type="text"/>
+                        <input name="q" class="bg-surface-container-low border border-outline-variant text-[11px] text-on-surface px-8 py-1.5 focus:border-primary focus:ring-0 transition-all w-64 rounded" placeholder="{% if ui_mode == 'tactical' %}QUERY DATABASE...{% else %}Search tasks...{% endif %}" type="text"/>
                         <span class="material-symbols-outlined absolute left-2 top-1.5 text-on-surface-variant text-sm">search</span>
                     </form>
                 </div>
@@ -220,11 +252,16 @@
 
         <footer class="mt-auto p-6 border-t border-outline-variant flex justify-between items-center text-[9px] text-on-surface-variant font-bold uppercase tracking-[0.2em]">
             <div class="flex gap-6">
+                {% if ui_mode == 'tactical' %}
                 <span>ENCRYPTED_STREAM: AES-256</span>
                 <span class="hidden sm:inline">LATENCY: 12ms</span>
+                {% else %}
+                <span>Secure Connection</span>
+                <span class="hidden sm:inline">Version 2.1</span>
+                {% endif %}
             </div>
             <div class="flex items-center gap-4">
-                <span>© 2026 MISSION_TRACKER_OS</span>
+                <span>© 2026 MISSION_TRACKER</span>
             </div>
         </footer>
     </main>

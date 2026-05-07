@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% from "macros.html" import avatar, badge, priority_badge, status_badge, due_pill with context %}
 
-{% block title %}{{ project.name }} - Tactical Operations{% endblock %}
-{% block header_title %}Node Control: {{ project.name }}{% endblock %}
+{% block title %}{{ project.name }} - {{ t.project }}{% endblock %}
+{% block header_title %}{{ t.project }}: {{ project.name }}{% endblock %}
 
 {% block content %}
 <div class="space-y-8" x-data="{ view: 'kanban' }">
@@ -10,9 +10,9 @@
     <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div class="space-y-4">
             <nav class="flex text-[10px] uppercase tracking-widest font-bold text-on-surface-variant gap-2 items-center">
-                <a href="/dashboard" class="hover:text-primary transition-colors">Nodes</a>
+                <a href="/dashboard" class="hover:text-primary transition-colors">{% if ui_mode == 'tactical' %}Nodes{% else %}Dashboard{% endif %}</a>
                 <span class="opacity-30">/</span>
-                <a href="/missions/{{ project.mission_id }}" class="hover:text-primary transition-colors">Mission_Data</a>
+                <a href="/missions/{{ project.mission_id }}" class="hover:text-primary transition-colors">{% if ui_mode == 'tactical' %}Mission_Data{% else %}Mission{% endif %}</a>
                 <span class="opacity-30">/</span>
                 <span class="text-primary">{{ project.name }}</span>
             </nav>
@@ -25,12 +25,12 @@
                     <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{{ project.name }}</h1>
                     <div class="flex items-center gap-4 mt-2">
                         <div class="flex items-center gap-2">
-                            <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Lead:</span>
+                            <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{{ t.lead }}:</span>
                             <span class="text-[9px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded border border-primary/20">{{ username_map.get(project.lead_id, 'UNASSIGNED') }}</span>
                         </div>
                         <div class="w-px h-3 bg-outline-variant"></div>
                         <div class="flex items-center gap-2">
-                            <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Tasks:</span>
+                            <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{{ t.tasks }}:</span>
                             <span class="text-[9px] font-bold text-on-surface uppercase tracking-widest">{{ tasks|length }}</span>
                         </div>
                     </div>
@@ -41,14 +41,14 @@
         <div class="flex items-center gap-4">
             <!-- View Switcher -->
             <div class="flex bg-surface-container-low p-1 rounded-lg border border-outline-variant/30">
-                <button @click="view = 'kanban'" :class="view === 'kanban' ? 'bg-primary text-on-primary shadow-lg' : 'text-on-surface-variant hover:text-on-surface'" class="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded">Tactical_Grid</button>
-                <button @click="view = 'list'" :class="view === 'list' ? 'bg-primary text-on-primary shadow-lg' : 'text-on-surface-variant hover:text-on-surface'" class="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded">Data_Stream</button>
+                <button @click="view = 'kanban'" :class="view === 'kanban' ? 'bg-primary text-on-primary shadow-lg' : 'text-on-surface-variant hover:text-on-surface'" class="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded">{% if ui_mode == 'tactical' %}Tactical_Grid{% else %}Kanban Board{% endif %}</button>
+                <button @click="view = 'list'" :class="view === 'list' ? 'bg-primary text-on-primary shadow-lg' : 'text-on-surface-variant hover:text-on-surface'" class="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded">{% if ui_mode == 'tactical' %}Data_Stream{% else %}List View{% endif %}</button>
             </div>
 
             {% if user.role in ('admin', 'lead') %}
             <a href="/admin/tasks/create?project_id={{ project.id }}" class="px-6 py-2 bg-primary text-on-primary text-[10px] font-bold uppercase tracking-[0.2em] rounded shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
                 <span class="material-symbols-outlined text-sm">add_task</span>
-                New_Directive
+                {% if ui_mode == 'tactical' %}New_Directive{% else %}Add Task{% endif %}
             </a>
             {% endif %}
         </div>
@@ -57,9 +57,9 @@
     <!-- Kanban View -->
     <div x-show="view === 'kanban'" x-transition class="grid grid-cols-1 md:grid-cols-3 gap-6" x-data="kanban()">
         {% set statuses = [
-            {'id': 'todo', 'label': 'AWAITING_EXEC', 'color': 'outline', 'icon': 'pending'},
-            {'id': 'in_progress', 'label': 'ACTIVE_OP', 'color': 'primary', 'icon': 'sync'},
-            {'id': 'done', 'label': 'OBJECTIVE_MET', 'color': 'tertiary', 'icon': 'verified'}
+            {'id': 'todo', 'label': t.todo, 'color': 'outline', 'icon': 'pending'},
+            {'id': 'in_progress', 'label': t.in_progress, 'color': 'primary', 'icon': 'sync'},
+            {'id': 'done', 'label': t.done, 'color': 'tertiary', 'icon': 'verified'}
         ] %}
 
         {% for status in statuses %}
@@ -85,12 +85,26 @@
                         
                         <div class="mt-4 pt-4 border-t border-outline-variant/20 flex justify-between items-center">
                             <div class="flex -space-x-2">
-                                <!-- Placeholders for assignees -->
-                                <div class="w-6 h-6 rounded-full border border-surface bg-surface-container-highest flex items-center justify-center text-[8px] font-black text-primary">?</div>
+                                {% set assignees = task_assignees.get(task.id, []) %}
+                                {% for a in assignees[:3] %}
+                                    <div class="ring-2 ring-surface-container-high rounded-full">
+                                        {{ avatar(a, size=6) }}
+                                    </div>
+                                {% endfor %}
+                                {% if assignees|length > 3 %}
+                                    <div class="w-6 h-6 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center text-[8px] font-bold text-primary ring-2 ring-surface-container-high">
+                                        +{{ assignees|length - 3 }}
+                                    </div>
+                                {% endif %}
+                                {% if not assignees %}
+                                    <div class="w-6 h-6 rounded-full border border-outline-variant/30 bg-surface-container-low flex items-center justify-center text-[8px] font-bold text-on-surface-variant/40 ring-2 ring-surface-container-high">
+                                        ?
+                                    </div>
+                                {% endif %}
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="material-symbols-outlined text-sm text-on-surface-variant">chat_bubble</span>
-                                <span class="text-[9px] font-bold text-on-surface-variant">--</span>
+                                <span class="text-[9px] font-bold text-on-surface-variant">LOG</span>
                             </div>
                         </div>
                     </div>
@@ -100,15 +114,15 @@
         {% endfor %}
     </div>
 
-    <!-- List View (Simplified Stream) -->
+    <!-- List View -->
     <div x-show="view === 'list'" x-transition class="hud-border bg-surface-container-lowest/40 rounded-xl overflow-hidden">
         <table class="w-full text-left border-collapse text-[11px]">
             <thead>
                 <tr class="bg-surface-container-low border-b border-outline-variant/30">
-                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant">Directive</th>
-                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant">Status</th>
-                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant">Priority</th>
-                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant text-right">Reference</th>
+                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant">{{ t.task }}</th>
+                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant">{{ t.status }}</th>
+                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant">{{ t.priority }}</th>
+                    <th class="px-6 py-4 font-black uppercase tracking-widest text-on-surface-variant text-right">{% if ui_mode == 'tactical' %}Reference{% else %}Ref ID{% endif %}</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/10">
@@ -120,7 +134,7 @@
                     </td>
                     <td class="px-6 py-4">{{ status_badge(task.status) }}</td>
                     <td class="px-6 py-4">{{ priority_badge(task.priority) }}</td>
-                    <td class="px-6 py-4 text-right font-mono text-[9px] text-outline uppercase tracking-tighter">SEC_{{ task.id[:8] }}</td>
+                    <td class="px-6 py-4 text-right font-mono text-[9px] text-outline uppercase tracking-tighter">{% if ui_mode == 'tactical' %}SEC_{% endif %}{{ task.id[:8] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -146,16 +160,18 @@ function kanban() {
         setupDraggable() {
             ['todo', 'in_progress', 'done'].forEach(status => {
                 const el = document.getElementById('kanban-' + status);
-                new Sortable(el, {
-                    group: 'tasks',
-                    animation: 150,
-                    ghostClass: 'opacity-30',
-                    onEnd: (evt) => {
-                        const taskId = evt.item.getAttribute('data-id');
-                        const newStatus = evt.to.id.replace('kanban-', '');
-                        this.updateStatus(taskId, newStatus);
-                    }
-                });
+                if (el) {
+                    new Sortable(el, {
+                        group: 'tasks',
+                        animation: 150,
+                        ghostClass: 'opacity-30',
+                        onEnd: (evt) => {
+                            const taskId = evt.item.getAttribute('data-id');
+                            const newStatus = evt.to.id.replace('kanban-', '');
+                            this.updateStatus(taskId, newStatus);
+                        }
+                    });
+                }
             });
         },
         async updateStatus(taskId, status) {
@@ -167,7 +183,6 @@ function kanban() {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
             this.updateCounts();
-            // Show toast or telemetry pulse
         }
     }
 }

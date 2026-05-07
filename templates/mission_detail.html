@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% from "macros.html" import badge, empty_state, avatar with context %}
 
-{% block title %}{{ mission.name }} - Data Intel{% endblock %}
-{% block header_title %}Mission Archive{% endblock %}
+{% block title %}{{ mission.name }} - {{ t.mission }}{% endblock %}
+{% block header_title %}{{ t.mission }} Detail{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
@@ -10,7 +10,7 @@
     <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div class="space-y-4">
             <nav class="flex text-[10px] uppercase tracking-widest font-bold text-on-surface-variant gap-2 items-center">
-                <a href="/dashboard" class="hover:text-primary transition-colors">Nodes</a>
+                <a href="/dashboard" class="hover:text-primary transition-colors">{% if ui_mode == 'tactical' %}Nodes{% else %}Dashboard{% endif %}</a>
                 <span class="opacity-30">/</span>
                 <span class="text-primary">{{ mission.name }}</span>
             </nav>
@@ -30,23 +30,23 @@
 
         {% if user.role == 'admin' %}
         <div class="flex items-center gap-3">
-            <a href="/admin/missions/{{ mission.id }}/edit" class="px-4 py-2 border border-outline-variant text-[10px] font-bold uppercase tracking-widest rounded hover:bg-surface-variant transition-all">Edit_Data</a>
+            <a href="/admin/missions/{{ mission.id }}/edit" class="px-4 py-2 border border-outline-variant text-[10px] font-bold uppercase tracking-widest rounded hover:bg-surface-variant transition-all">{% if ui_mode == 'tactical' %}Edit_Data{% else %}Edit Mission{% endif %}</a>
             <a href="/admin/projects/create?mission_id={{ mission.id }}" class="px-6 py-2 bg-primary text-on-primary text-[10px] font-bold uppercase tracking-[0.2em] rounded shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
                 <span class="material-symbols-outlined text-sm">add</span>
-                Initialize_Project
+                {% if ui_mode == 'tactical' %}Initialize_Project{% else %}New Project{% endif %}
             </a>
         </div>
         {% endif %}
     </div>
 
-    <!-- Active Projects Grid -->
+    <!-- Projects Grid -->
     <div class="space-y-6">
         <div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
             <h2 class="text-xs font-bold text-primary uppercase tracking-[0.3em] flex items-center gap-2">
                 <span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
-                Active Operational Nodes
+                {% if ui_mode == 'tactical' %}Active Operational Nodes{% else %}Active Projects{% endif %}
             </h2>
-            <span class="text-[10px] font-bold text-on-surface-variant">{{ projects|length }} UNITS</span>
+            <span class="text-[10px] font-bold text-on-surface-variant">{{ projects|length }} {{ t.project|upper }}S</span>
         </div>
 
         {% if projects %}
@@ -60,7 +60,7 @@
                             <h3 class="text-lg font-bold text-on-surface group-hover:text-primary transition-colors leading-tight uppercase font-headline">{{ project.name }}</h3>
                             <div class="mt-2 flex items-center text-[10px] text-on-surface-variant font-bold uppercase tracking-widest gap-2">
                                 <span class="material-symbols-outlined text-xs">account_circle</span>
-                                {{ username_map.get(project.lead_id, 'UNASSIGNED_LEAD') }}
+                                {{ t.lead }}: {{ username_map.get(project.lead_id, 'UNASSIGNED') }}
                             </div>
                         </div>
 
@@ -78,12 +78,12 @@
                                  class="absolute right-0 mt-2 w-48 bg-surface-container-high border border-outline-variant shadow-2xl z-20 p-1 rounded-lg">
                                 <a href="/admin/projects/{{ project.id }}/edit" class="flex items-center gap-3 px-3 py-2 text-[10px] font-bold text-on-surface hover:bg-surface-variant rounded transition-colors uppercase tracking-widest">
                                     <span class="material-symbols-outlined text-sm">edit</span>
-                                    Sync_Metadata
+                                    {% if ui_mode == 'tactical' %}Sync_Metadata{% else %}Edit Project{% endif %}
                                 </a>
                                 <form action="/admin/projects/{{ project.id }}/delete" method="post">
                                     <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 text-[10px] font-bold text-error hover:bg-error/10 rounded transition-colors uppercase tracking-widest">
                                         <span class="material-symbols-outlined text-sm">delete</span>
-                                        Purge_Node
+                                        {% if ui_mode == 'tactical' %}Purge_Node{% else %}Delete Project{% endif %}
                                     </button>
                                 </form>
                             </div>
@@ -95,7 +95,7 @@
                         {% if project.description %}
                             <p class="text-[11px] text-on-surface-variant leading-relaxed tracking-wide uppercase line-clamp-3">{{ project.description }}</p>
                         {% else %}
-                            <p class="text-[11px] italic text-on-surface-variant/50 uppercase tracking-widest">No node telemetry provided.</p>
+                            <p class="text-[11px] italic text-on-surface-variant/50 uppercase tracking-widest">No description provided.</p>
                         {% endif %}
                     </div>
 
@@ -105,14 +105,14 @@
                             <span class="text-[9px] font-bold text-tertiary uppercase tracking-[0.2em]">Operational</span>
                         </div>
                         <div class="text-[9px] font-bold text-primary border border-primary/30 px-3 py-1 bg-primary/10 rounded group-hover:bg-primary group-hover:text-on-primary transition-all uppercase tracking-widest">
-                            Access_Node
+                            {% if ui_mode == 'tactical' %}Access_Node{% else %}Open Project{% endif %}
                         </div>
                     </div>
                 </div>
             {% endfor %}
         </div>
         {% else %}
-            {{ empty_state('No project nodes detected in this sector.', 'precision_manufacturing') }}
+            {{ empty_state('No projects found in this mission.', 'precision_manufacturing') }}
         {% endif %}
     </div>
 </div>

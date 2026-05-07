@@ -1,21 +1,22 @@
 {% extends "base.html" %}
-{% from "macros.html" import avatar with context %}
+{% from "macros.html" import avatar, empty_state with context %}
 
-{% block title %}Monthly Progress{% endblock %}
+{% block title %}{{ t.analytics }} - Mission Tracker{% endblock %}
+{% block header_title %}{{ t.analytics }}{% endblock %}
 
 {% block content %}
 <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
     <div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Monthly Progress</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-1">Analytical breakdown of mission and project performance.</p>
+        <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{% if ui_mode == 'tactical' %}Telemetry Data{% else %}Performance Analytics{% endif %}</h1>
+        <p class="text-on-surface-variant uppercase tracking-widest mt-2">{% if ui_mode == 'tactical' %}Analytical breakdown of mission and project performance.{% else %}Overview of mission and project progress metrics.{% endif %}</p>
     </div>
     
     <form method="get" class="flex items-center gap-3">
         <div class="relative">
             <input type="month" name="month" value="{{ month }}"
-                   class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-brand-500 transition-all dark:text-white outline-none">
+                   class="bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-2.5 text-sm font-semibold focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none">
         </div>
-        <button type="submit" class="px-5 py-2.5 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all active:scale-95">
+        <button type="submit" class="px-5 py-2.5 bg-primary text-on-primary rounded-lg font-bold text-xs uppercase tracking-widest hover:brightness-110 shadow-lg transition-all active:scale-95">
             Filter
         </button>
     </form>
@@ -23,51 +24,51 @@
 
 <!-- Progress Charts -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-8 shadow-sm">
-        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">Mission Distribution</h3>
+    <div class="hud-border bg-surface-container-lowest/40 p-8 rounded-xl">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-primary mb-6">{% if ui_mode == 'tactical' %}Sector Distribution{% else %}Mission Distribution{% endif %}</h3>
         <div id="mission-pie-chart" class="min-h-[300px]"></div>
     </div>
-    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-8 shadow-sm">
-        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">Top Contributor Output</h3>
+    <div class="hud-border bg-surface-container-lowest/40 p-8 rounded-xl">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-primary mb-6">{% if ui_mode == 'tactical' %}Operative Output{% else %}Top Contributors{% endif %}</h3>
         <div id="contributor-bar-chart" class="min-h-[300px]"></div>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-    <!-- Main Stats Column -->
+    <!-- Main Stats -->
     <div class="lg:col-span-2 space-y-8">
-        <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 px-2">
-            <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            Mission & Project Completion
+        <h2 class="text-xl font-bold text-on-surface uppercase tracking-tight flex items-center gap-2 px-2">
+            <span class="material-symbols-outlined text-primary">analytics</span>
+            {% if ui_mode == 'tactical' %}Node Completion Matrix{% else %}Completion Status{% endif %}
         </h2>
 
         <div class="space-y-6">
             {% for mid, mdata in mission_stats.items() %}
-            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-sm">
+            <div class="hud-border bg-surface-container-lowest/40 p-6 rounded-xl">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ mdata.name }}</h3>
-                    <span class="text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">Mission</span>
+                    <h3 class="text-lg font-bold text-on-surface uppercase font-headline">{{ mdata.name }}</h3>
+                    <span class="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 uppercase tracking-widest">{{ t.mission }}</span>
                 </div>
                 
                 <div class="grid grid-cols-1 gap-6">
                     {% for pid, pdata in mdata.projects.items() %}
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ pdata.name }}</span>
+                            <span class="text-sm font-bold text-on-surface uppercase tracking-wide">{{ pdata.name }}</span>
                             <div class="flex items-center gap-3">
-                                <span class="text-xs font-bold text-slate-500 dark:text-slate-500">{{ pdata.completed }} / {{ pdata.total }} Done</span>
+                                <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">{{ pdata.completed }} / {{ pdata.total }} Done</span>
                                 {% if pdata.total > 0 %}
-                                    <span class="text-xs font-bold text-brand-600 dark:text-brand-400">{{ (pdata.completed / pdata.total * 100)|round|int }}%</span>
+                                    <span class="text-xs font-black text-primary">{{ (pdata.completed / pdata.total * 100)|round|int }}%</span>
                                 {% endif %}
                             </div>
                         </div>
                         
-                        <div class="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-2.5 overflow-hidden">
+                        <div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden border border-outline-variant/10">
                             {% if pdata.total > 0 %}
                                 {% set pct = (pdata.completed / pdata.total * 100)|round|int %}
-                                <div class="bg-gradient-to-r from-brand-500 to-emerald-500 h-full rounded-full transition-all duration-1000 ease-out" style="width: {{ pct }}%"></div>
+                                <div class="bg-gradient-to-r from-primary to-tertiary h-full rounded-full transition-all duration-1000 ease-out" style="width: {{ pct }}%"></div>
                             {% else %}
-                                <div class="bg-slate-200 dark:bg-slate-800 h-full w-0 rounded-full"></div>
+                                <div class="bg-surface-variant h-full w-0 rounded-full"></div>
                             {% endif %}
                         </div>
                     </div>
@@ -75,45 +76,41 @@
                 </div>
             </div>
             {% else %}
-            <div class="bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 py-20 text-center">
-                <p class="text-slate-500 italic">No missions recorded for this period.</p>
-            </div>
+            {{ empty_state('No data recorded for this period.', 'query_stats') }}
             {% endfor %}
         </div>
     </div>
 
-    <!-- Leaderboard Column -->
+    <!-- Leaderboard -->
     <div class="space-y-8">
-        <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 px-2">
-            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z"/></svg>
-            Top Contributors
+        <h2 class="text-xl font-bold text-on-surface uppercase tracking-tight flex items-center gap-2 px-2">
+            <span class="material-symbols-outlined text-tertiary">military_tech</span>
+            {% if ui_mode == 'tactical' %}Elite Operatives{% else %}Top Contributors{% endif %}
         </h2>
 
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm">
-            <div class="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
-                <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Completions this month</p>
+        <div class="hud-border bg-surface-container-lowest/40 rounded-xl overflow-hidden">
+            <div class="p-6 border-b border-outline-variant/30 bg-surface-container-low/50">
+                <p class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">Monthly completions</p>
             </div>
             
-            <div class="divide-y divide-slate-100 dark:divide-slate-700/50">
+            <div class="divide-y divide-outline-variant/10">
                 {% for aid, count in assignee_stats.items() %}
-                <div class="flex items-center justify-between p-6 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                <div class="flex items-center justify-between p-6 hover:bg-surface-variant/20 transition-colors">
                     <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-xs font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
-                            {{ username_map.get(aid, 'Unknown')[:1].upper() }}
-                        </div>
+                        {{ avatar({'username': username_map.get(aid, '?')}, size=10) }}
                         <div>
-                            <p class="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{{ username_map.get(aid, 'Unknown Member') }}</p>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Contributor</span>
+                            <p class="text-sm font-bold text-on-surface uppercase tracking-wide leading-none mb-1">{{ username_map.get(aid, 'Unknown') }}</p>
+                            <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{% if ui_mode == 'tactical' %}Pilot{% else %}Member{% endif %}</span>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xl font-bold text-slate-900 dark:text-white">{{ count }}</div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tasks</div>
+                        <div class="text-xl font-bold text-on-surface">{{ count }}</div>
+                        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{{ t.tasks }}</div>
                     </div>
                 </div>
                 {% else %}
                 <div class="p-10 text-center">
-                    <p class="text-sm italic text-slate-400">No completions recorded.</p>
+                    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-50">No activity detected.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -126,6 +123,11 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const isDark = document.documentElement.classList.contains('dark');
+        const themeColor = isDark ? '#d0bcff' : '#6d3bd7';
+        const textColor = isDark ? '#cbc3d7' : '#64748b';
+        const gridColor = isDark ? '#494454' : '#cbd5e1';
+
         // Mission Pie Chart
         const missionLabels = [];
         const missionSeries = [];
@@ -143,9 +145,9 @@
                 series: missionSeries,
                 labels: missionLabels,
                 chart: { type: 'donut', height: 300, background: 'transparent' },
-                theme: { mode: 'dark', monochrome: { enabled: true, color: '#00f0ff' } },
+                theme: { mode: isDark ? 'dark' : 'light', monochrome: { enabled: true, color: themeColor } },
                 stroke: { show: false },
-                legend: { position: 'bottom' },
+                legend: { position: 'bottom', labels: { colors: textColor } },
                 dataLabels: { enabled: false }
             }).render();
         }
@@ -162,11 +164,17 @@
             new ApexCharts(document.querySelector("#contributor-bar-chart"), {
                 series: [{ name: 'Tasks Completed', data: contributorSeries }],
                 chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent' },
-                plotOptions: { bar: { borderRadius: 10, columnWidth: '50%', distributed: true } },
-                colors: ['#00f0ff', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
-                theme: { mode: 'dark' },
-                xaxis: { categories: contributorLabels, labels: { style: { fontSize: '10px', fontFamily: 'JetBrains Mono' } } },
-                grid: { borderColor: '#1e293b' },
+                plotOptions: { bar: { borderRadius: 4, columnWidth: '50%', distributed: true } },
+                colors: [themeColor, '#4cd7f6', '#b4b0ff', '#ffb4ab', '#acedff'],
+                theme: { mode: isDark ? 'dark' : 'light' },
+                xaxis: { 
+                    categories: contributorLabels, 
+                    labels: { style: { fontSize: '9px', fontWeight: 700, colors: textColor } },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
+                },
+                yaxis: { labels: { style: { colors: textColor } } },
+                grid: { borderColor: gridColor, strokeDashArray: 4 },
                 legend: { show: false }
             }).render();
         }

@@ -111,23 +111,15 @@ def create_task(title: str, description: str | None, project_id: str, user_id: s
     }
     if org_id:
         data["organization_id"] = org_id
-    res = supabase.table("tasks").insert(data).execute().data[0]
+    client = supabase_admin if supabase_admin else supabase
+    res = client.table("tasks").insert(data).execute().data[0]
     log_action(user_id, "task_created", "task", res["id"], new_values=data, org_id=org_id)
     return res
 
 def update_task_status(task_id: str, new_status: str, user_id: str, org_id: str = None):
     old = get_task(task_id, org_id)
-    # Basic state machine
-    if old["status"] == "done" and new_status != "done":
-         # Allow moving back from done if admin/lead? For now stick to original logic
-         pass
-    
-    # Original logic was quite restrictive:
-    # if old["status"] == "done": raise Exception("Cannot change a completed task")
-    # if old["status"] == "todo" and new_status not in ("in_progress",): ...
-    
-    # Let's make it more flexible for SaaS
-    supabase.table("tasks").update({"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", task_id).execute()
+    client = supabase_admin if supabase_admin else supabase
+    client.table("tasks").update({"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", task_id).execute()
     log_action(user_id, "task_status_changed", "task", task_id, old_values={"status": old["status"]}, new_values={"status": new_status}, org_id=org_id)
 
 # ---------- Multi-Assignees ----------
@@ -223,7 +215,8 @@ def get_users_by_role(role: str, org_id: str = None):
     return query.execute().data
 
 def get_all_users_detailed(org_id: str = None):
-    query = supabase.table("profiles").select("id, username, display_name, role, created_at").order("created_at")
+    client = supabase_admin if supabase_admin else supabase
+    query = client.table("profiles").select("id, username, display_name, role, email, created_at").order("created_at")
     if org_id:
         query = query.eq("organization_id", org_id)
     return query.execute().data
@@ -389,6 +382,18 @@ def revert_action(log_id: str, admin_id: str):
     elif "deleted" in action:
         table = f"{entity_type}s" if not entity_type.endswith('s') else entity_type
         # Special case for task_attachments as the table name is different
+        if entity_type == "task_attachment":
+             table = "task_attachments"
+        supabase.table(table).insert(old_values).execute()
+    
+    else:
+        raise Exception(f"Action '{action}' cannot be automatically reverted yet.")
+
+    log_action(admin_id, f"reverted_{action}", entity_type, entity_id, 
+               old_values=json.loads(log["new_values"]) if log["new_values"] else None,
+               new_values=old_values, org_id=org_id)
+    return True
+s the table name is different
         if entity_type == "task_attachment":
              table = "task_attachments"
         supabase.table(table).insert(old_values).execute()
