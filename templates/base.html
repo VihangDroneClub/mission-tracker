@@ -195,11 +195,12 @@
             <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-3 px-2 py-3 mb-2 bg-surface-container rounded-lg border border-outline-variant/30">
                     <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-bold text-xs">
-                        {{ user.email[:1].upper() }}
+                        {{ (user.display_name or user.username or user.email)[:1].upper() }}
                     </div>
                     <div class="overflow-hidden">
-                        <p class="text-[10px] font-bold text-on-surface truncate">{{ user.email }}</p>
-                        <p class="text-[9px] text-primary uppercase font-bold tracking-widest">{{ user.role }}</p>
+                        <p class="text-[10px] font-bold text-on-surface truncate">{{ user.display_name or user.username or 'UNKNOWN_USER' }}</p>
+                        <p class="text-[8px] text-on-surface-variant font-mono uppercase opacity-70">ID: {{ user.id[:8] }}</p>
+                        <p class="text-[9px] text-primary uppercase font-bold tracking-widest mt-0.5">{{ user.role }}</p>
                     </div>
                 </div>
                 <a href="/logout" class="flex items-center gap-3 text-error hover:bg-error/10 px-3 py-2 text-[11px] uppercase tracking-widest transition-colors rounded-lg">

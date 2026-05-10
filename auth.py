@@ -71,6 +71,8 @@ async def get_current_user(request: Request) -> dict:
     return {
         "id": user.id, 
         "email": user.email, 
+        "username": profile.get("username"),
+        "display_name": profile.get("display_name"),
         "role": profile["role"],
         "organization_id": profile.get("organization_id")
     }
