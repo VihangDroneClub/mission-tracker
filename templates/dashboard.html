@@ -5,176 +5,264 @@
 {% block header_title %}{{ t.dashboard }}{% endblock %}
 
 {% block content %}
-<section class="grid grid-cols-12 gap-6 auto-rows-min">
-    <!-- Main View -->
-    <div class="col-span-12 lg:col-span-8 space-y-6">
-        <!-- Alert Strip -->
-        {% if alerts %}
-        <div class="hud-border bg-error/10 border-error/30 p-4 rounded-xl flex items-center gap-4 animate-pulse">
-            <span class="material-symbols-outlined text-error">warning</span>
-            <div class="flex-1">
-                <p class="text-[10px] font-bold text-error uppercase tracking-widest">
-                    Critical Alert: {{ alerts|length }} directives require immediate attention (Overdue or Due Soon).
-                </p>
+<!-- Main Grid - Forced to fit screen on desktop -->
+<section class="grid grid-cols-12 gap-4 lg:h-[calc(100vh-10rem)] overflow-hidden">
+    <!-- Left Column: Primary Intel -->
+    <div class="col-span-12 lg:col-span-8 flex flex-col gap-4 overflow-hidden">
+        <!-- Telemetry Filters - Compact -->
+        <div class="hud-border bg-surface-container-low/30 p-3 rounded-xl flex items-center gap-4 shrink-0">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-xs">filter_alt</span>
+                <span class="text-[8px] font-black text-on-surface-variant uppercase tracking-widest">Filters</span>
             </div>
-            <a href="/my-tasks" class="text-[9px] font-bold text-error underline uppercase tracking-widest hover:text-white transition-colors">Resolve Now</a>
+            
+            <form method="get" class="flex items-center gap-3">
+                <select name="mission_id" onchange="this.form.submit()" class="bg-surface-container-low border border-outline-variant/30 rounded px-2 py-1 text-[9px] font-bold text-on-surface focus:ring-1 focus:ring-primary outline-none uppercase">
+                    <option value="">ALL SECTORS</option>
+                    {% for m in all_missions %}
+                    <option value="{{ m.id }}" {% if selected_mission == m.id %}selected{% endif %}>{{ m.name.upper() }}</option>
+                    {% endfor %}
+                </select>
+
+                {% if all_projects %}
+                <select name="project_id" onchange="this.form.submit()" class="bg-surface-container-low border border-outline-variant/30 rounded px-2 py-1 text-[9px] font-bold text-on-surface focus:ring-1 focus:ring-primary outline-none uppercase">
+                    <option value="">ALL NODE_CLUSTERS</option>
+                    {% for p in all_projects %}
+                    <option value="{{ p.id }}" {% if selected_project == p.id %}selected{% endif %}>{{ p.name.upper() }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+
+                {% if selected_mission or selected_project %}
+                <a href="/dashboard" class="text-[8px] font-bold text-error uppercase underline tracking-widest hover:text-white">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Alert Strip - Minimal -->
+        {% if alerts %}
+        <div class="hud-border bg-error/10 border-error/30 p-2 px-4 rounded-lg flex items-center gap-3 animate-pulse shrink-0">
+            <span class="material-symbols-outlined text-error text-sm">warning</span>
+            <p class="text-[9px] font-bold text-error uppercase tracking-widest flex-1">
+                {{ alerts|length }} directives require immediate attention.
+            </p>
+            <a href="/my-tasks" class="text-[8px] font-bold text-error underline uppercase tracking-widest hover:text-white">Resolve</a>
         </div>
         {% endif %}
 
-        <div class="hud-border bg-surface-container-lowest/40 p-6 relative overflow-hidden rounded-xl">
-            <div class="flex justify-between items-end mb-6">
+        <!-- Activity Overview Chart -->
+        <div class="hud-border bg-surface-container-lowest/40 p-4 relative overflow-hidden rounded-xl shadow-2xl flex-1 min-h-0 flex flex-col">
+            <div class="flex justify-between items-start mb-2 shrink-0">
                 <div>
-                    <span class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest">{% if ui_mode == 'tactical' %}Global Telemetry{% else %}Activity Overview{% endif %}</span>
-                    <h3 class="text-primary text-2xl font-headline font-bold uppercase tracking-tight">{{ t.mission }} Activity Flow</h3>
+                    <h3 class="text-primary text-xl font-headline font-bold uppercase tracking-tight">{{ t.mission }} Data Flow</h3>
                 </div>
                 <div class="text-right">
-                    <span class="text-tertiary text-xl font-bold font-mono">{{ missions|length }} ACTIVE</span>
-                    <p class="text-[9px] text-on-tertiary-fixed font-bold tracking-widest uppercase">{% if ui_mode == 'tactical' %}Node Efficiency 98.4%{% else %}System Status: Optimal{% endif %}</p>
+                    <span class="text-tertiary text-sm font-bold font-mono">{{ missions|length }}</span>
                 </div>
             </div>
             
-            <!-- Mission task counts chart -->
-            <div class="h-48 w-full flex items-end gap-2 px-1">
-                {% for item in missions %}
-                    {% set max_tasks = missions|map(attribute='task_count')|max if missions else 10 %}
-                    {% set height = (item.task_count / max_tasks * 100)|int if max_tasks > 0 else 0 %}
-                    <div class="flex-1 bg-primary/20 h-[{{ height }}%] hover:bg-primary/40 transition-all cursor-pointer border-t border-primary relative group rounded-t-sm" 
-                         onclick="window.location='/missions/{{ item.mission.id }}'">
-                        <span class="hidden group-hover:block absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-2 py-1 font-bold whitespace-nowrap rounded shadow-lg z-10">
-                            {{ item.mission.name }}: {{ item.task_count }}
-                        </span>
-                    </div>
-                {% else %}
-                    <div class="flex-1 bg-surface-container h-1 animate-pulse"></div>
-                {% endfor %}
-            </div>
-            <div class="flex justify-between mt-4 border-t border-outline-variant/30 pt-4 text-[9px] text-on-surface-variant font-bold uppercase tracking-widest">
-                <span>{% if ui_mode == 'tactical' %}Database Alpha{% else %}Data Sector 1{% endif %}</span>
-                <span>Signal Stable</span>
-                <span>{{ today }}</span>
-            </div>
+            <!-- Interactive Bar Graph -->
+            <div id="activity-bar-chart" class="flex-1 w-full min-h-0"></div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Bottom Grid: Status & Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
             <!-- Mission Status -->
-            <div class="hud-border bg-surface-container-lowest/40 p-5 rounded-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">{{ t.status }}</span>
+            <div class="hud-border bg-surface-container-lowest/40 p-4 rounded-xl flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[9px] text-primary uppercase font-bold tracking-widest">Operation_Status</span>
                     {% if user.role == 'admin' %}
-                    <a href="/admin/missions/create" class="material-symbols-outlined text-sm text-on-surface-variant hover:text-primary transition-colors">add_circle</a>
+                    <a href="/admin/missions/create" class="material-symbols-outlined text-xs text-on-surface-variant hover:text-primary transition-colors">add_circle</a>
                     {% endif %}
                 </div>
-                <div class="space-y-3">
+                <div class="space-y-2 overflow-y-auto max-h-[140px] pr-2 custom-scrollbar">
                     {% for item in missions[:3] %}
-                    <div class="hud-border bg-surface-container p-3 flex items-center justify-between border-l-4 border-l-primary rounded-lg transition-all hover:bg-surface-container-high cursor-pointer"
+                    <div class="hud-border bg-surface-container p-2 px-3 flex items-center justify-between border-l-2 border-l-primary rounded transition-all hover:bg-surface-container-high cursor-pointer"
                          onclick="window.location='/missions/{{ item.mission.id }}'">
-                        <div>
-                            <h4 class="text-xs font-bold uppercase tracking-wide">{{ item.mission.name }}</h4>
-                            <p class="text-[9px] text-on-surface-variant uppercase mt-1">{{ item.project_count }} {{ t.project }}s</p>
+                        <div class="overflow-hidden mr-4">
+                            <h4 class="text-[10px] font-bold uppercase tracking-wide truncate">{{ item.mission.name }}</h4>
+                            <p class="text-[8px] text-on-surface-variant uppercase">{{ item.project_count }} clusters</p>
                         </div>
-                        <div class="text-right">
-                            <span class="text-[10px] text-primary font-bold">{{ item.task_count }} {{ t.task[:3].upper() if ui_mode == 'tactical' else 'Tasks' }}</span>
-                            <div class="w-16 h-1 bg-surface-variant mt-1 rounded-full overflow-hidden">
-                                <div class="h-full bg-primary" style="width: 70%"></div>
+                        <div class="text-right shrink-0">
+                            <span class="text-[9px] text-primary font-bold">{{ item.progress }}%</span>
+                            <div class="w-12 h-0.5 bg-surface-variant mt-1 rounded-full overflow-hidden">
+                                <div class="h-full bg-primary" style="width: {{ item.progress }}%"></div>
                             </div>
                         </div>
                     </div>
                     {% else %}
-                    <p class="text-[10px] text-on-surface-variant italic">NO {{ t.mission.upper() }}S DEPLOYED</p>
+                    <p class="text-[9px] text-on-surface-variant italic text-center py-4">NO OPERATIONS DETECTED</p>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Stats -->
-            <div class="hud-border bg-surface-container-lowest/40 p-5 rounded-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">{% if ui_mode == 'tactical' %}Resource Allocation{% else %}Quick Stats{% endif %}</span>
-                    <span class="material-symbols-outlined text-sm text-on-surface-variant">rocket_launch</span>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
-                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Total_{{ t.tasks }}</span>
-                        <span class="text-2xl font-bold font-mono">{{ stats.total_tasks or 0 }}</span>
-                        <div class="flex gap-1 mt-1">
-                            <div class="w-1.5 h-1.5 bg-primary glow-indicator rounded-full"></div>
-                            <div class="w-1.5 h-1.5 bg-primary/20 rounded-full"></div>
-                            <div class="w-1.5 h-1.5 bg-primary/20 rounded-full"></div>
-                        </div>
+            <!-- Quick Stats -->
+            <div class="hud-border bg-surface-container-lowest/40 p-4 rounded-xl">
+                <span class="text-[9px] text-primary uppercase font-bold tracking-widest mb-3 block">Resource_Allocation</span>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="p-2 border border-outline-variant bg-surface-container-low flex flex-col gap-0.5 rounded-lg">
+                        <span class="text-[7px] text-on-surface-variant font-bold uppercase tracking-tighter">Total_{{ t.tasks }}</span>
+                        <span class="text-lg font-bold font-mono">{{ stats.total_tasks or 0 }}</span>
                     </div>
-                    <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
-                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Active_Users</span>
-                        <span class="text-2xl font-bold font-mono text-tertiary">{{ stats.active_users or 0 }}</span>
-                        <div class="flex gap-1 mt-1">
-                            <div class="w-1.5 h-1.5 bg-tertiary glow-indicator rounded-full shadow-[0_0_8px_#4cd7f6]"></div>
-                            <div class="w-1.5 h-1.5 bg-tertiary/20 rounded-full"></div>
-                        </div>
+                    <div class="p-2 border border-outline-variant bg-surface-container-low flex flex-col gap-0.5 rounded-lg">
+                        <span class="text-[7px] text-on-surface-variant font-bold uppercase tracking-tighter">Active_Users</span>
+                        <span class="text-lg font-bold font-mono text-tertiary">{{ stats.active_users or 0 }}</span>
                     </div>
-                    <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
-                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Done_This_Month</span>
-                        <span class="text-2xl font-bold font-mono text-green-400">{{ stats.completed_this_month or 0 }}</span>
+                    <div class="p-2 border border-outline-variant bg-surface-container-low flex flex-col gap-0.5 rounded-lg">
+                        <span class="text-[7px] text-on-surface-variant font-bold uppercase tracking-tighter">Done_Month</span>
+                        <span class="text-lg font-bold font-mono text-green-400">{{ stats.completed_this_month or 0 }}</span>
                     </div>
-                    <div class="p-3 border border-outline-variant bg-surface-container-low flex flex-col gap-1 rounded-lg">
-                        <span class="text-[9px] text-on-surface-variant font-bold uppercase tracking-tighter">Overdue_Alerts</span>
-                        <span class="text-2xl font-bold font-mono text-error">{{ stats.overdue_count or 0 }}</span>
+                    <div class="p-2 border border-outline-variant bg-surface-container-low flex flex-col gap-0.5 rounded-lg">
+                        <span class="text-[7px] text-on-surface-variant font-bold uppercase tracking-tighter">Alerts</span>
+                        <span class="text-lg font-bold font-mono text-error">{{ stats.overdue_count or 0 }}</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Right Sidebar Content -->
-    <div class="col-span-12 lg:col-span-4 space-y-6">
-        <div class="hud-border bg-surface-container-lowest/40 flex flex-col h-full rounded-xl overflow-hidden min-h-[400px]">
-            <div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
-                <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em]">{% if ui_mode == 'tactical' %}Recent Activity Log{% else %}Recent Activity{% endif %}</span>
-                <div class="flex gap-2 items-center">
-                    <div class="w-1.5 h-1.5 bg-primary glow-indicator rounded-full animate-pulse"></div>
-                    <span class="text-[8px] text-on-surface font-bold tracking-widest uppercase">{% if ui_mode == 'tactical' %}Streaming{% else %}Live{% endif %}</span>
-                </div>
+    <!-- Right Column: System HUD -->
+    <div class="col-span-12 lg:col-span-4 flex flex-col gap-4 overflow-hidden">
+        <!-- Recent Activity Log -->
+        <div class="hud-border bg-surface-container-lowest/40 flex flex-col flex-1 rounded-xl overflow-hidden min-h-0">
+            <div class="p-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50 shrink-0">
+                <span class="text-[9px] text-primary uppercase font-bold tracking-widest">Recent Activity</span>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 {% if ui_mode == 'tactical' %}font-mono{% endif %} text-[10px]">
-                <div class="flex gap-3 text-on-surface-variant border-l border-primary/30 pl-3">
-                    <span class="text-primary opacity-60">[{{ today }}]</span>
-                    <p><span class="text-primary font-bold uppercase">AUTH:</span> Session initialized successfully.</p>
+            <div class="flex-1 overflow-y-auto p-3 space-y-3 font-mono text-[9px] custom-scrollbar">
+                {% for log in recent_activities %}
+                <div class="flex flex-col gap-0.5 border-l border-primary/30 pl-2 group relative">
+                    <div class="flex justify-between items-center">
+                        <span class="text-primary opacity-60">[{{ log.created_at[11:16] }}]</span>
+                        {% if user.role == 'admin' and not log.action.startswith('reverted_') %}
+                        <form action="/admin/undo/{{ log.id }}" method="post" class="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button type="submit" class="text-[7px] font-bold text-primary border border-primary/30 px-1.5 py-0 rounded hover:bg-primary hover:text-on-primary transition-all">REVERT</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <p class="truncate">
+                        <span class="text-primary font-bold">{{ username_map.get(log.user_id, '??') }}:</span> 
+                        {{ log.action.replace('_', ' ').upper() }}
+                    </p>
                 </div>
-                <div class="flex gap-3 text-on-surface-variant border-l border-tertiary/30 pl-3">
-                    <span class="text-tertiary opacity-60">[00:00:15]</span>
-                    <p><span class="text-tertiary font-bold uppercase">INFO:</span> {{ t.dashboard }} interface synchronized.</p>
-                </div>
-                {% if not missions %}
-                <div class="flex gap-3 text-error border-l border-error/30 pl-3">
-                    <span class="opacity-60">[WARN]</span>
-                    <p><span class="font-bold uppercase">DATA:</span> No {{ t.mission }} data detected.</p>
-                </div>
-                {% endif %}
-            </div>
-            
-            <div class="p-4 bg-surface-container border-t border-outline-variant">
-                <div class="flex gap-2 items-center">
-                    <span class="text-primary text-[11px] font-bold">&gt;</span>
-                    <input class="bg-transparent border-none p-0 text-[10px] {% if ui_mode == 'tactical' %}font-mono{% endif %} focus:ring-0 w-full placeholder:text-on-surface-variant/30 text-primary" 
-                           placeholder="{% if ui_mode == 'tactical' %}INITIATE COMMAND...{% else %}Enter command...{% endif %}" type="text"/>
-                </div>
-            </div>
-        </div>
-
-        <div class="hud-border bg-surface-container-lowest/40 p-4 rounded-xl">
-            <span class="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-4 block">{% if ui_mode == 'tactical' %}Operation Parameters{% else %}System Health{% endif %}</span>
-            <div class="space-y-4">
-                <div class="flex justify-between items-center text-[10px]">
-                    <span class="text-on-surface-variant uppercase tracking-widest">{% if ui_mode == 'tactical' %}Encryption{% else %}Security{% endif %}</span>
-                    <span class="font-bold text-tertiary">AES-256-X</span>
-                </div>
-                <div class="flex justify-between items-center text-[10px]">
-                    <span class="text-on-surface-variant uppercase tracking-widest">Connection</span>
-                    <span class="font-bold text-primary">STABLE</span>
-                </div>
-                <div class="w-full bg-surface-variant h-1 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-primary to-tertiary w-3/4"></div>
-                </div>
+                {% else %}
+                <div class="p-4 text-center opacity-30 italic">No recent activity</div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const themeColor = isDark ? '#d0bcff' : '#6d3bd7';
+    const textColor = isDark ? '#cbc3d7' : '#64748b';
+    const gridColor = isDark ? '#494454' : '#cbd5e1';
+    const accentColor = '#8B5CF6';
+
+    const missionLabels = [];
+    const missionProgress = [];
+    const missionTotal = [];
+    const missionIDs = [];
+
+    {% for item in missions %}
+        missionLabels.push("{{ item.mission.name.upper() }}");
+        missionProgress.push({{ item.progress }});
+        missionTotal.push({{ item.task_count }});
+        missionIDs.push("{{ item.mission.id }}");
+    {% endfor %}
+
+    if (missionLabels.length > 0) {
+        const options = {
+            series: [{
+                name: 'Completion %',
+                data: missionProgress
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                background: 'transparent',
+                toolbar: { show: false },
+                events: {
+                    dataPointSelection: function(event, chartContext, config) {
+                        const missionId = missionIDs[config.dataPointIndex];
+                        window.location.href = `/missions/${missionId}`;
+                    }
+                }
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    columnWidth: '45%',
+                    distributed: true,
+                    dataLabels: { position: 'top' }
+                }
+            },
+            colors: [accentColor, '#4cd7f6', '#b4b0ff', '#ffb4ab', '#acedff'],
+            dataLabels: {
+                enabled: true,
+                formatter: function (val, opts) {
+                    return val + "%";
+                },
+                offsetY: -20,
+                style: {
+                    fontSize: '10px',
+                    fontFamily: 'Bebas Neue',
+                    colors: [textColor]
+                }
+            },
+            legend: { show: false },
+            grid: {
+                borderColor: gridColor,
+                strokeDashArray: 4,
+                yaxis: { lines: { show: true } }
+            },
+            xaxis: {
+                categories: missionLabels,
+                labels: {
+                    style: {
+                        colors: textColor,
+                        fontSize: '9px',
+                        fontFamily: 'JetBrains Mono',
+                        fontWeight: 700
+                    }
+                },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: {
+                max: 100,
+                labels: {
+                    style: {
+                        colors: textColor,
+                        fontFamily: 'JetBrains Mono'
+                    }
+                }
+            },
+            tooltip: {
+                theme: isDark ? 'dark' : 'light',
+                y: {
+                    formatter: function(val, { series, seriesIndex, dataPointIndex, w }) {
+                        return val + "% (" + missionTotal[dataPointIndex] + " Directives)";
+                    }
+                }
+            }
+        };
+
+        const chart = new ApexCharts(document.querySelector("#activity-bar-chart"), options);
+        chart.render();
+    } else {
+        document.querySelector("#activity-bar-chart").innerHTML = `
+            <div class="h-64 flex flex-col items-center justify-center border border-dashed border-outline-variant/30 rounded-lg">
+                <span class="material-symbols-outlined text-4xl text-on-surface-variant opacity-20 mb-4">query_stats</span>
+                <p class="text-[10px] text-on-surface-variant italic uppercase tracking-widest">No telemetry data matching current filters.</p>
+            </div>
+        `;
+    }
+});
+</script>
 {% endblock %}

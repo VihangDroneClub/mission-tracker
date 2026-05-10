@@ -11,26 +11,59 @@ def _get_client():
     return supabase_admin if supabase_admin else supabase
 
 @router.get("/dashboard")
-async def dashboard(request: Request, user: dict = Depends(get_current_user)):
+async def dashboard(
+    request: Request, 
+    mission_id: str = None,
+    project_id: str = None,
+    user: dict = Depends(get_current_user)
+):
     org_id = user.get("organization_id")
     today = date.today()
     
     try:
-        # Optimized fetch to fix N+1
+        # Optimized fetch with optional filters
         missions_query = _get_client().table("missions").select("*")
         if org_id:
             missions_query = missions_query.eq("organization_id", org_id)
+        if mission_id:
+            missions_query = missions_query.eq("id", mission_id)
         missions_data = missions_query.execute().data or []
         
-        projects_query = _get_client().table("projects").select("id, mission_id")
+        projects_query = _get_client().table("projects").select("*")
         if org_id:
             projects_query = projects_query.eq("organization_id", org_id)
+        if mission_id:
+            projects_query = projects_query.eq("mission_id", mission_id)
+        if project_id:
+            projects_query = projects_query.eq("id", project_id)
         projects_data = projects_query.execute().data or []
         
         tasks_query = _get_client().table("tasks").select("*")
         if org_id:
             tasks_query = tasks_query.eq("organization_id", org_id)
+        if project_id:
+            tasks_query = tasks_query.eq("project_id", project_id)
+        elif mission_id:
+            # If mission filtered but not project, we need to filter tasks by project_ids in that mission
+            p_ids = [p["id"] for p in projects_data]
+            if p_ids:
+                tasks_query = tasks_query.in_("project_id", p_ids)
+            else:
+                tasks_query = tasks_query.eq("project_id", "00000000-0000-0000-0000-000000000000") # Empty result
         tasks_data = tasks_query.execute().data or []
+
+        # For the filter dropdowns, we need all missions/projects in the org
+        all_missions_query = _get_client().table("missions").select("id, name")
+        if org_id:
+            all_missions_query = all_missions_query.eq("organization_id", org_id)
+        all_missions = all_missions_query.execute().data or []
+
+        all_projects = []
+        if mission_id:
+            all_projects_query = _get_client().table("projects").select("id, name").eq("mission_id", mission_id)
+            if org_id:
+                all_projects_query = all_projects_query.eq("organization_id", org_id)
+            all_projects = all_projects_query.execute().data or []
         
         profiles_query = _get_client().table("profiles").select("id", count="exact")
         if org_id:
@@ -46,6 +79,7 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
             project_map[mid].append(p["id"])
             
         task_map = {}
+        completed_task_map = {}
         overdue_tasks = []
         due_soon_tasks = []
         completed_this_month = 0
@@ -56,8 +90,8 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
             pid = t["project_id"]
             task_map[pid] = task_map.get(pid, 0) + 1
             
-            # Statistics & Alerts logic
             if t["status"] == "done":
+                completed_task_map[pid] = completed_task_map.get(pid, 0) + 1
                 if t.get("updated_at") and t["updated_at"] >= this_month_start:
                     completed_this_month += 1
             else:
@@ -76,10 +110,15 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
         for m in missions_data:
             m_projects = project_map.get(m["id"], [])
             t_count = sum(task_map.get(pid, 0) for pid in m_projects)
+            c_count = sum(completed_task_map.get(pid, 0) for pid in m_projects)
+            progress = (c_count / t_count * 100) if t_count > 0 else 0
+            
             mission_stats.append({
                 "mission": m,
                 "project_count": len(m_projects),
-                "task_count": t_count
+                "task_count": t_count,
+                "completed_task_count": c_count,
+                "progress": int(progress)
             })
             
         stats = {
@@ -88,11 +127,19 @@ async def dashboard(request: Request, user: dict = Depends(get_current_user)):
             "overdue_count": len(overdue_tasks),
             "active_users": active_users_count
         }
+
+        # Fetch recent activities for the sidebar
+        recent_logs = crud.get_audit_logs(limit=10, org_id=org_id)
             
         return render_template("dashboard.html", request, user=user, 
                                missions=mission_stats, 
                                stats=stats,
-                               alerts=overdue_tasks + due_soon_tasks)
+                               alerts=overdue_tasks + due_soon_tasks,
+                               recent_activities=recent_logs,
+                               all_missions=all_missions,
+                               all_projects=all_projects,
+                               selected_mission=mission_id,
+                               selected_project=project_id)
     except Exception as e:
         # Fallback for migration/initial setup issues
         return render_template("dashboard.html", request, user=user, missions=[], stats={}, alerts=[], error=str(e))

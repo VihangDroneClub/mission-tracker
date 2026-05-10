@@ -22,7 +22,7 @@
                     <span class="material-symbols-outlined text-2xl">precision_manufacturing</span>
                 </div>
                 <div>
-                    <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{{ project.name }}</h1>
+                    <h1 class="text-4xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-none">{{ project.name }}</h1>
                     <div class="flex items-center gap-4 mt-2">
                         <div class="flex items-center gap-2">
                             <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{{ t.lead }}:</span>
@@ -191,13 +191,23 @@ function kanban() {
         },
         async updateStatus(taskId, status) {
             const formData = new FormData();
-            formData.append('status', status);
-            await fetch(`/tasks/${taskId}/status`, {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            this.updateCounts();
+            formData.append('new_status', status);
+            try {
+                const response = await fetch(`/tasks/${taskId}/update-status`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'HX-Request': 'true'
+                    }
+                });
+                if (!response.ok) throw new Error('Update failed');
+                this.updateCounts();
+            } catch (err) {
+                console.error(err);
+                alert('{% if ui_mode == 'tactical' %}SYNC_FAILURE: UNAUTHORIZED_OR_REFUSED{% else %}Update failed: You might not have permission.{% endif %}');
+                window.location.reload(); // Revert UI
+            }
         }
     }
 }

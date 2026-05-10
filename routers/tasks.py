@@ -42,7 +42,7 @@ async def add_task(request: Request, project_id: str,
 
 @router.post("/tasks/{task_id}/update-status")
 async def update_task_status(request: Request, task_id: str, new_status: str = Form(...),
-                             user: dict = Depends(get_current_user)):
+                             user: dict = Depends(lead_or_admin_required)):
     org_id = user.get("organization_id")
     task = crud.get_task(task_id, org_id)
     if not task:
@@ -52,9 +52,13 @@ async def update_task_status(request: Request, task_id: str, new_status: str = F
     try:
         crud.update_task_status(task_id, new_status, user["id"], org_id)
         # Notify Discord
-        notify_task_status_changed(task, old_status, new_status, user.get("email", "Unknown"))
-    except Exception:
-        pass
+        try:
+            notify_task_status_changed(task, old_status, new_status, user.get("email", "Unknown"))
+        except:
+            pass
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update status: {str(e)}")
+
     task = crud.get_task(task_id, org_id)
     if request.headers.get("HX-Request") == "true":
         task_assignees = {task["id"]: crud.get_assignees(task["id"])}

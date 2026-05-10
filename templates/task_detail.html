@@ -43,7 +43,7 @@
                 {{ due_pill(task.due_date) }}
             </div>
 
-            <h1 class="text-3xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-tight mb-4">{{ task.title }}</h1>
+            <h1 class="text-4xl font-headline font-bold text-on-surface tracking-tighter uppercase leading-tight mb-4">{{ task.title }}</h1>
             
             {% if task.description %}
                 <div class="prose dark:prose-invert max-w-none text-on-surface-variant text-sm leading-relaxed uppercase tracking-wide">
@@ -73,13 +73,17 @@
                         {% if ui_mode == 'tactical' %}Modify_Params{% else %}Edit Task{% endif %}
                     </a>
                     
-                    <form action="/tasks/{{ task.id }}/update-status" method="post" class="inline">
+                    <form action="/tasks/{{ task.id }}/update-status" method="post" class="inline-flex gap-2">
                         {% if task.status == 'todo' %}
                             <input type="hidden" name="new_status" value="in_progress">
                             <button type="submit" class="px-6 py-2.5 bg-primary text-on-primary rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg transition-all active:scale-95">Start Work</button>
                         {% elif task.status == 'in_progress' %}
                             <input type="hidden" name="new_status" value="done">
                             <button type="submit" class="px-6 py-2.5 bg-tertiary text-on-tertiary rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg transition-all active:scale-95">Complete Task</button>
+                            
+                            <button type="submit" name="new_status" value="todo" class="px-4 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-surface-variant transition-all active:scale-95">Move to Todo</button>
+                        {% elif task.status == 'done' %}
+                            <button type="submit" name="new_status" value="in_progress" class="px-6 py-2.5 bg-primary text-on-primary rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg transition-all active:scale-95">Re-Open Task</button>
                         {% endif %}
                     </form>
                 </div>

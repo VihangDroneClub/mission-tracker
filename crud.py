@@ -125,6 +125,23 @@ def update_task_status(task_id: str, new_status: str, user_id: str, org_id: str 
     client.table("tasks").update({"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", task_id).execute()
     log_action(user_id, "task_status_changed", "task", task_id, old_values={"status": old["status"]}, new_values={"status": new_status}, org_id=org_id)
 
+def update_task(task_id: str, title: str, description: str | None, priority: str, due_date: str | None, user_id: str, org_id: str = None):
+    old = get_task(task_id, org_id)
+    new_data = {
+        "title": title,
+        "description": description,
+        "priority": priority,
+        "due_date": due_date,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    _get_client().table("tasks").update(new_data).eq("id", task_id).execute()
+    log_action(user_id, "task_updated", "task", task_id, old_values=old, new_values=new_data, org_id=org_id)
+
+def delete_task(task_id: str, user_id: str, org_id: str = None):
+    old = get_task(task_id, org_id)
+    _get_client().table("tasks").delete().eq("id", task_id).execute()
+    log_action(user_id, "task_deleted", "task", task_id, old_values=old, org_id=org_id)
+
 # ---------- Multi-Assignees ----------
 def get_assignees(task_id: str) -> list[dict]:
     assignee_rows = _get_client().table("task_assignees").select("user_id").eq("task_id", task_id).execute().data
@@ -364,10 +381,14 @@ def revert_action(log_id: str, admin_id: str):
         _get_client().table("tasks").update({"status": old_values["status"]}).eq("id", entity_id).execute()
     
     # Metadata/Edit Reversal
-    elif action in ("mission_updated", "project_updated"):
-        table = "missions" if action == "mission_updated" else "projects"
+    elif action in ("mission_updated", "project_updated", "task_updated"):
+        if action == "mission_updated": table = "missions"
+        elif action == "project_updated": table = "projects"
+        else: table = "tasks"
+        
         # We only restore fields that were in the edit form
-        data = {k: v for k, v in old_values.items() if k in ("name", "description", "lead_id")}
+        allowed_fields = ("name", "description", "lead_id", "title", "priority", "due_date")
+        data = {k: v for k, v in old_values.items() if k in allowed_fields}
         _get_client().table(table).update(data).eq("id", entity_id).execute()
     
     # Role Reversal
@@ -384,8 +405,9 @@ def revert_action(log_id: str, admin_id: str):
     # Deletion Reversal (Restore)
     elif "deleted" in action:
         table = f"{entity_type}s" if not entity_type.endswith('s') else entity_type
-        # Special case for task_attachments as the table name is different
-        if entity_type == "task_attachment":
+        if entity_type == "user":
+            table = "profiles"
+        elif entity_type == "task_attachment":
              table = "task_attachments"
         _get_client().table(table).insert(old_values).execute()
     

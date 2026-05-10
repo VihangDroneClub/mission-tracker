@@ -5,10 +5,13 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 @router.post("/preferences")
 async def update_preferences(
-    request: Request,
-    theme: str = Form(...),
-    ui_mode: str = Form(...)
+    request: Request
 ):
+    form_data = await request.form()
+    # Handle multiple values (hidden input + button click) by taking the last one
+    theme = form_data.getlist("theme")[-1] if form_data.getlist("theme") else "dark"
+    ui_mode = form_data.getlist("ui_mode")[-1] if form_data.getlist("ui_mode") else "tactical"
+
     # Get the URL to redirect back to (referer) or default to dashboard
     referer = request.headers.get("referer", "/dashboard")
     response = RedirectResponse(url=referer, status_code=303)
