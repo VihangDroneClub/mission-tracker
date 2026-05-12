@@ -199,6 +199,11 @@ async def progress_dashboard(request: Request, month: str = None, user: dict = D
                            mission_stats=mission_stats, assignee_stats=assignee_stats,
                            username_map=username_map)
 
+@router.get("/demo-analytics")
+async def demo_analytics(request: Request, user: dict = Depends(get_current_user)):
+    """A purely static page for video recording purposes to ensure charts always show data."""
+    return render_template("fake_progress.html", request, user=user)
+
 @router.get("/progress/operative/{user_id}")
 async def operative_drilldown(request: Request, user_id: str, month: str = None, user: dict = Depends(get_current_user)):
     if not month:
