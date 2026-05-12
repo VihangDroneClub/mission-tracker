@@ -167,11 +167,11 @@
         const missionSeries = [];
         {% for mid, mdata in mission_stats.items() %}
             missionLabels.push("{{ mdata.name }}");
-            {% set total_tasks = 0 %}
+            {% set ns = namespace(total=0) %}
             {% for pid, pdata in mdata.projects.items() %}
-                {% set total_tasks = total_tasks + pdata.total %}
+                {% set ns.total = ns.total + pdata.total %}
             {% endfor %}
-            missionSeries.push({{ total_tasks }});
+            missionSeries.push({{ ns.total }});
         {% endfor %}
 
         if (missionSeries.length > 0) {
