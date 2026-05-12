@@ -24,11 +24,11 @@
                 <thead>
                     <tr class="bg-surface-container-low border-b border-outline-variant/30 text-[10px]">
                         <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">Timestamp</th>
+                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant text-center">{% if ui_mode == 'tactical' %}Protocol{% else %}Management{% endif %}</th>
                         <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Actor_ID{% else %}User{% endif %}</th>
                         <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Mutation_Type{% else %}Action{% endif %}</th>
                         <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Entity_Details{% else %}Target{% endif %}</th>
                         <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant">{% if ui_mode == 'tactical' %}Payload{% else %}Changes{% endif %}</th>
-                        <th class="px-6 py-4 font-black uppercase tracking-[0.2em] text-on-surface-variant text-right">{% if ui_mode == 'tactical' %}Protocol{% else %}Management{% endif %}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/10 {% if ui_mode == 'tactical' %}font-mono{% endif %} text-[11px]">
@@ -37,6 +37,26 @@
                         <td class="px-6 py-5 whitespace-nowrap">
                             <div class="text-[10px] font-bold text-on-surface uppercase">{{ log.created_at[:10] }}</div>
                             <div class="text-[9px] font-bold text-primary mt-1 opacity-70">{{ log.created_at[11:19] }}</div>
+                        </td>
+                        <td class="px-6 py-5 whitespace-nowrap">
+                            {% if not log.action.startswith('reverted_') %}
+                            <form action="/admin/undo/{{ log.id }}" method="post">
+                                <button type="submit" class="group/btn relative overflow-hidden px-4 py-2 rounded-lg bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-on-primary transition-all duration-300 shadow-[0_0_10px_rgba(139,92,246,0.1)] hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] active:scale-95 mx-auto">
+                                    <div class="flex items-center gap-2 relative z-10">
+                                        <span class="material-symbols-outlined text-sm animate-pulse">restart_alt</span>
+                                        <span class="text-[10px] font-black uppercase tracking-widest">
+                                            {% if ui_mode == 'tactical' %}CMD_REVERT{% else %}Undo{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:animate-[shimmer_2s_infinite]"></div>
+                                </button>
+                            </form>
+                            {% else %}
+                            <div class="flex items-center justify-center gap-2 text-outline-variant italic opacity-40">
+                                <span class="material-symbols-outlined text-sm">verified</span>
+                                <span class="text-[9px] font-bold uppercase tracking-widest">{% if ui_mode == 'tactical' %}SYNC_REVERTED{% else %}Reverted{% endif %}</span>
+                            </div>
+                            {% endif %}
                         </td>
                         <td class="px-6 py-5">
                             <div class="flex items-center gap-3">
@@ -78,26 +98,6 @@
                                 </div>
                                 {% endif %}
                             </div>
-                        </td>
-                        <td class="px-6 py-5 text-right whitespace-nowrap">
-                            {% if not log.action.startswith('reverted_') %}
-                            <form action="/admin/undo/{{ log.id }}" method="post">
-                                <button type="submit" class="group/btn relative overflow-hidden px-4 py-2 rounded-lg bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-on-primary transition-all duration-300 shadow-[0_0_10px_rgba(139,92,246,0.1)] hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] active:scale-95">
-                                    <div class="flex items-center gap-2 relative z-10">
-                                        <span class="material-symbols-outlined text-sm animate-pulse">restart_alt</span>
-                                        <span class="text-[10px] font-black uppercase tracking-widest">
-                                            {% if ui_mode == 'tactical' %}CMD_REVERT{% else %}Undo Change{% endif %}
-                                        </span>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:animate-[shimmer_2s_infinite]"></div>
-                                </button>
-                            </form>
-                            {% else %}
-                            <div class="flex items-center justify-end gap-2 text-outline-variant italic opacity-40">
-                                <span class="material-symbols-outlined text-sm">verified</span>
-                                <span class="text-[9px] font-bold uppercase tracking-widest">{% if ui_mode == 'tactical' %}SYNC_REVERTED{% else %}Reverted{% endif %}</span>
-                            </div>
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
