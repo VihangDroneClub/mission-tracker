@@ -1,0 +1,42 @@
+<div class="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+    <div class="flex items-center gap-4 mb-4">
+        <div class="w-12 h-12 bg-primary/20 text-primary rounded-full flex items-center justify-center font-bold text-xl border border-primary/30 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+            {{ operative_name[:1].upper() }}
+        </div>
+        <div>
+            <h4 class="text-xl font-bold text-on-surface uppercase tracking-tighter">{{ operative_name }}</h4>
+            <p class="text-[9px] font-bold text-primary uppercase tracking-[0.3em]">Status: Verified Active</p>
+        </div>
+    </div>
+
+    {% for mission, projects in stats.items() %}
+    <div class="space-y-4">
+        <div class="flex items-center gap-2">
+            <div class="h-[1px] flex-1 bg-gradient-to-r from-primary/50 to-transparent"></div>
+            <span class="text-[10px] font-bold text-primary uppercase tracking-widest">{{ mission }}</span>
+            <div class="h-[1px] w-12 bg-primary/50"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for project, tasks in projects.items() %}
+            <div class="bg-surface-container/30 border border-outline-variant/20 rounded-lg p-4">
+                <h5 class="text-xs font-bold text-on-surface-variant uppercase mb-3 flex items-center gap-2">
+                    <span class="w-1 h-3 bg-tertiary rounded-full"></span>
+                    {{ project }}
+                </h5>
+                <ul class="space-y-2">
+                    {% for task in tasks %}
+                    <li class="flex items-start gap-2 group">
+                        <span class="material-symbols-outlined text-[14px] text-primary mt-0.5 group-hover:scale-125 transition-transform">check_circle</span>
+                        <span class="text-[11px] text-on-surface uppercase tracking-wide opacity-80 group-hover:opacity-100 transition-opacity">{{ task }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-center py-10 opacity-50">No mission-linked data found for this sector.</p>
+    {% endfor %}
+</div>

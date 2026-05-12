@@ -34,6 +34,18 @@
     </div>
 </div>
 
+<div id="drilldown-container" class="mb-10 hidden transition-all duration-500">
+    <div class="hud-border bg-surface-container-lowest/40 p-8 rounded-xl border-primary shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+        <div class="flex items-center justify-between mb-6">
+             <h3 class="text-xs font-bold uppercase tracking-widest text-primary">Operative Deep-Dive // Active Sync</h3>
+             <button onclick="document.getElementById('drilldown-container').classList.add('hidden')" class="text-[9px] font-bold text-on-surface-variant hover:text-primary transition-all uppercase tracking-widest">[ Close_X ]</button>
+        </div>
+        <div id="drilldown-content">
+            <!-- Content loaded via HTMX -->
+        </div>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
     <!-- Main Stats -->
     <div class="lg:col-span-2 space-y-8">
@@ -95,7 +107,7 @@
             
             <div class="divide-y divide-outline-variant/10">
                 {% for aid, count in assignee_stats.items() %}
-                <div class="flex items-center justify-between p-6 hover:bg-surface-variant/20 transition-colors">
+                <div class="flex items-center justify-between p-6 hover:bg-surface-variant/20 transition-colors group">
                     <div class="flex items-center gap-4">
                         {{ avatar({'username': username_map.get(aid, '?')}, size=10) }}
                         <div>
@@ -103,9 +115,16 @@
                             <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{% if ui_mode == 'tactical' %}Pilot{% else %}Member{% endif %}</span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-xl font-bold text-on-surface">{{ count }}</div>
-                        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{{ t.tasks }}</div>
+                    <div class="flex items-center gap-6">
+                        <button onclick="openOperativeStats('{{ aid }}')" 
+                                class="hidden group-hover:flex items-center gap-1 text-[8px] font-bold text-primary border border-primary/30 px-2 py-1 rounded bg-primary/5 hover:bg-primary hover:text-on-primary transition-all uppercase tracking-widest">
+                            <span class="material-symbols-outlined text-[10px]">analytics</span>
+                            View_Intel
+                        </button>
+                        <div class="text-right">
+                            <div class="text-xl font-bold text-on-surface">{{ count }}</div>
+                            <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{{ t.tasks }}</div>
+                        </div>
                     </div>
                 </div>
                 {% else %}
@@ -122,6 +141,21 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
+    function openOperativeStats(userId) {
+        if (!userId) return;
+        console.log("Opening Stats for:", userId);
+        const container = document.getElementById('drilldown-container');
+        const content = document.getElementById('drilldown-content');
+        
+        container.classList.remove('hidden');
+        content.innerHTML = '<div class="flex items-center justify-center py-20 animate-pulse"><span class="material-symbols-outlined animate-spin text-primary text-4xl">sync</span><div class="ml-4"><p class="text-xs font-bold uppercase tracking-[.3em] text-primary">Establishing Link...</p><p class="text-[9px] text-on-surface-variant uppercase mt-1">Retrieving Sector Performance Data</p></div></div>';
+        
+        htmx.ajax('GET', `/progress/operative/${userId}?month={{ month }}`, {target: '#drilldown-content', swap: 'innerHTML'});
+        
+        // Scroll to container
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const isDark = document.documentElement.classList.contains('dark');
         const themeColor = isDark ? '#d0bcff' : '#6d3bd7';
@@ -155,15 +189,25 @@
         // Contributor Bar Chart
         const contributorLabels = [];
         const contributorSeries = [];
+        const contributorUserIds = [];
         {% for aid, count in assignee_stats.items() %}
             contributorLabels.push("{{ username_map.get(aid, 'User') }}");
             contributorSeries.push({{ count }});
+            contributorUserIds.push("{{ aid }}");
         {% endfor %}
 
         if (contributorSeries.length > 0) {
             new ApexCharts(document.querySelector("#contributor-bar-chart"), {
                 series: [{ name: 'Tasks Completed', data: contributorSeries }],
-                chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent' },
+                chart: { 
+                    type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent',
+                    events: {
+                        dataPointSelection: function(event, chartContext, config) {
+                            const userId = contributorUserIds[config.dataPointIndex];
+                            openOperativeStats(userId);
+                        }
+                    }
+                },
                 plotOptions: { bar: { borderRadius: 4, columnWidth: '50%', distributed: true } },
                 colors: [themeColor, '#4cd7f6', '#b4b0ff', '#ffb4ab', '#acedff'],
                 theme: { mode: isDark ? 'dark' : 'light' },

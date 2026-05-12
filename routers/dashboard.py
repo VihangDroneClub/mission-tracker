@@ -199,6 +199,50 @@ async def progress_dashboard(request: Request, month: str = None, user: dict = D
                            mission_stats=mission_stats, assignee_stats=assignee_stats,
                            username_map=username_map)
 
+@router.get("/progress/operative/{user_id}")
+async def operative_drilldown(request: Request, user_id: str, month: str = None, user: dict = Depends(get_current_user)):
+    if not month:
+        now = datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    
+    org_id = user.get("organization_id")
+    
+    # 1. Get task_ids for this user from junction table
+    assignee_rows = _get_client().table("task_assignees").select("task_id").eq("user_id", user_id).execute().data
+    task_ids = [r["task_id"] for r in assignee_rows]
+    
+    if not task_ids:
+        return render_template("_operative_stats.html", request, stats={})
+
+    # 2. Get completed tasks for this user in this month
+    start_date = f"{month}-01T00:00:00Z"
+    y, m = map(int, month.split("-"))
+    next_month = f"{y+1}-01" if m == 12 else f"{y}-{m+1:02d}"
+    end_date = f"{next_month}-01T00:00:00Z"
+
+    query = _get_client().table("tasks").select("*, projects(name, mission_id, missions(name))").in_("id", task_ids).eq("status", "done").gte("updated_at", start_date).lt("updated_at", end_date)
+    if org_id:
+        query = query.eq("organization_id", org_id)
+    
+    tasks = query.execute().data or []
+    
+    # 3. Group by Mission/Project
+    stats = {}
+    for t in tasks:
+        p = t.get("projects")
+        m = p.get("missions")
+        m_name = m.get("name") if m else "Unknown Mission"
+        p_name = p.get("name") if p else "Unknown Project"
+        
+        if m_name not in stats:
+            stats[m_name] = {}
+        if p_name not in stats[m_name]:
+            stats[m_name][p_name] = []
+        stats[m_name][p_name].append(t["title"])
+        
+    username_map = get_username_map(org_id)
+    return render_template("_operative_stats.html", request, stats=stats, operative_name=username_map.get(user_id, "Unknown"))
+
 @router.get("/search")
 async def search(
     request: Request,

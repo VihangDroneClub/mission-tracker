@@ -17,7 +17,7 @@ app = FastAPI(title="Mission Tracker")
 # 401 Exception Handler
 @app.exception_handler(401)
 async def unauthorized_exception_handler(request: Request, exc):
-    return RedirectResponse(url="/login")
+    return RedirectResponse(url="/login", status_code=303)
 
 # Include Routers
 app.include_router(auth_router.router)

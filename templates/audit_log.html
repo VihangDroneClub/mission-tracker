@@ -82,12 +82,21 @@
                         <td class="px-6 py-5 text-right whitespace-nowrap">
                             {% if not log.action.startswith('reverted_') %}
                             <form action="/admin/undo/{{ log.id }}" method="post">
-                                <button type="submit" class="text-[9px] font-bold uppercase tracking-widest text-primary border border-primary/30 bg-primary/5 px-3 py-1.5 rounded hover:bg-primary hover:text-on-primary transition-all">
-                                    {% if ui_mode == 'tactical' %}REVERT{% else %}Undo{% endif %}
+                                <button type="submit" class="group/btn relative overflow-hidden px-4 py-2 rounded-lg bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-on-primary transition-all duration-300 shadow-[0_0_10px_rgba(139,92,246,0.1)] hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] active:scale-95">
+                                    <div class="flex items-center gap-2 relative z-10">
+                                        <span class="material-symbols-outlined text-sm animate-pulse">restart_alt</span>
+                                        <span class="text-[10px] font-black uppercase tracking-widest">
+                                            {% if ui_mode == 'tactical' %}CMD_REVERT{% else %}Undo Change{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:animate-[shimmer_2s_infinite]"></div>
                                 </button>
                             </form>
                             {% else %}
-                            <span class="text-[9px] font-bold text-outline uppercase tracking-widest italic opacity-50">{% if ui_mode == 'tactical' %}SYNC_REVERTED{% else %}Reverted{% endif %}</span>
+                            <div class="flex items-center justify-end gap-2 text-outline-variant italic opacity-40">
+                                <span class="material-symbols-outlined text-sm">verified</span>
+                                <span class="text-[9px] font-bold uppercase tracking-widest">{% if ui_mode == 'tactical' %}SYNC_REVERTED{% else %}Reverted{% endif %}</span>
+                            </div>
                             {% endif %}
                         </td>
                     </tr>
