@@ -3,38 +3,12 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from datetime import date
-import crud
+from services.users import get_all_users_detailed
 
 BASE_DIR = Path(__file__).resolve().parent
 env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")), autoescape=True)
 
-# Terminology Dictionaries
-TACTICAL_DICT = {
-    "dashboard": "Overview",
-    "tasks": "Actions",
-    "todo": "Queued",
-    "in_progress": "Active",
-    "done": "Complete",
-    "users": "Team",
-    "audit_log": "Activity Log",
-    "search": "Search",
-    "analytics": "Insights",
-    "mission": "Campaign",
-    "project": "Stream",
-    "task": "Item",
-    "overdue": "Past Due",
-    "due_today": "Due Today",
-    "due_this_week": "This Week",
-    "upcoming": "Scheduled",
-    "no_due": "Flexible",
-    "priority": "Priority",
-    "status": "Status",
-    "lead": "Lead",
-    "member": "Member",
-    "admin": "Admin"
-}
-
-STANDARD_DICT = {
+TERMINOLOGY = {
     "dashboard": "Dashboard",
     "tasks": "Tasks",
     "todo": "To Do",
@@ -56,38 +30,36 @@ STANDARD_DICT = {
     "status": "Status",
     "lead": "Project Lead",
     "member": "Member",
-    "admin": "Administrator"
+    "admin": "Administrator",
 }
 
-def get_username_map(org_id: str = None):
+
+def get_username_map(org_id: str | None = None) -> dict:
     try:
-        users = crud.get_all_users_detailed(org_id)
+        users = get_all_users_detailed(org_id)
         return {u["id"]: u["display_name"] or u["username"] or "Member" for u in users}
     except Exception as e:
-        print(f"DEBUG: get_username_map failed: {e}")
+        print(f"get_username_map failed: {e}")
         return {}
+
 
 def render_template(template_name: str, request: Request, **kwargs) -> HTMLResponse:
     template = env.get_template(template_name)
-    
-    # Read preferences from cookies
+
     theme = request.cookies.get("theme", "dark")
-    ui_mode = request.cookies.get("ui_mode", "tactical")
-    
-    # Select dictionary
-    t_dict = TACTICAL_DICT if ui_mode == "tactical" else STANDARD_DICT
-    
+    ui_mode = "standard"
+
     if "username_map" not in kwargs:
         user = kwargs.get("user")
         org_id = user.get("organization_id") if user else None
         kwargs["username_map"] = get_username_map(org_id)
-    
+
     html_content = template.render(
-        request=request, 
-        today=date.today(), 
+        request=request,
+        today=date.today(),
         theme=theme,
         ui_mode=ui_mode,
-        t=t_dict,
-        **kwargs
+        t=TERMINOLOGY,
+        **kwargs,
     )
     return HTMLResponse(html_content)

@@ -11,10 +11,10 @@
     
     <style>
         :root {
-            --font-main: {% if ui_mode == 'tactical' %}'JetBrains Mono', monospace{% else %}'Inter', sans-serif{% endif %};
+            --font-main: 'Inter', sans-serif;
         }
         body {
-            background-color: {% if theme == 'dark' %}#050505{% else %}#f8fafc{% endif %};
+            background-color: {% if theme == 'dark' %}#0a0a0f{% else %}#f8fafc{% endif %};
             color: {% if theme == 'dark' %}#e5e2e1{% else %}#0f172a{% endif %};
             font-family: var(--font-main);
         }
@@ -25,24 +25,15 @@
             border: 1px solid #8B5CF6;
             box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
         }
-        .glow-indicator {
-            box-shadow: 0 0 8px #8B5CF6;
-        }
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
         }
         [x-cloak] { display: none !important; }
         
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: {% if theme == 'dark' %}#131313{% else %}#f1f5f9{% endif %}; }
         ::-webkit-scrollbar-thumb { background: #3c0091; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #d0bcff; }
-
-        @keyframes progress-scan {
-            0% { background-position: 0 0; }
-            100% { background-position: 20px 0; }
-        }
     </style>
 
     <script id="tailwind-config">
@@ -75,7 +66,7 @@
                       "surface-variant": "{% if theme == 'dark' %}#353534{% else %}#f1f5f9{% endif %}",
                       "outline": "{% if theme == 'dark' %}#958ea0{% else %}#94a3b8{% endif %}",
                       "inverse-surface": "#e5e2e1",
-                      "background": "{% if theme == 'dark' %}#131313{% else %}#f8fafc{% endif %}",
+                      "background": "{% if theme == 'dark' %}#0a0a0f{% else %}#f8fafc{% endif %}",
                       "inverse-primary": "#6d3bd7",
                       "secondary": "{% if theme == 'dark' %}#c3c0ff{% else %}#5c53a5{% endif %}",
                       "primary": "{% if theme == 'dark' %}#d0bcff{% else %}#6d3bd7{% endif %}",
@@ -119,17 +110,95 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
-<body class="flex min-h-screen bg-background text-on-background {% if ui_mode == 'tactical' %}font-mono uppercase{% else %}font-sans{% endif %}">
+<body class="flex min-h-screen bg-background text-on-background font-sans" x-data="{ mobileNav: false }">
 
     {% if user %}
-    <!-- Sidebar -->
+    <!-- Mobile Header Bar -->
+    <div class="md:hidden fixed top-0 left-0 right-0 h-14 bg-surface/95 backdrop-blur-xl border-b border-outline-variant z-50 flex items-center justify-between px-4">
+        <button @click="mobileNav = true" class="p-2 text-on-surface-variant hover:text-primary">
+            <span class="material-symbols-outlined text-2xl">menu</span>
+        </button>
+        <h1 class="font-headline text-xl tracking-tighter uppercase text-primary">Mission Tracker</h1>
+        <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-bold text-xs">
+            {{ (user.display_name or user.username or user.email)[:1].upper() }}
+        </div>
+    </div>
+
+    <!-- Mobile Nav Drawer -->
+    <div x-show="mobileNav" x-cloak class="md:hidden fixed inset-0 z-[60]" @keydown.escape.window="mobileNav = false">
+        <div class="absolute inset-0 bg-black/60" @click="mobileNav = false"></div>
+        <div class="absolute left-0 top-0 bottom-0 w-72 bg-surface border-r border-outline-variant shadow-2xl flex flex-col py-6"
+             x-show="mobileNav"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="-translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="-translate-x-full">
+            <div class="px-6 mb-6">
+                <h1 class="font-headline font-bold text-5xl tracking-tighter uppercase leading-none">
+                    <span class="{% if theme == 'dark' %}text-white{% else %}text-black{% endif %}">Mission</span><span class="text-[#8B5CF6]">Tracker</span>
+                </h1>
+                <p class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em] mt-2">Project Management</p>
+            </div>
+
+            <nav class="flex-1 flex flex-col gap-1 px-2">
+                <a href="/dashboard" class="flex items-center gap-3 {% if request.url.path == '/dashboard' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary{% else %}text-on-surface-variant{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] rounded-lg">
+                    <span class="material-symbols-outlined text-xl">dashboard</span> {{ t.dashboard }}
+                </a>
+                <a href="/my-tasks" class="flex items-center gap-3 {% if request.url.path == '/my-tasks' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary{% else %}text-on-surface-variant{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] rounded-lg">
+                    <span class="material-symbols-outlined text-xl">inbox</span> My Tasks
+                </a>
+                <a href="/search" class="flex items-center gap-3 {% if request.url.path == '/search' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary{% else %}text-on-surface-variant{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] rounded-lg">
+                    <span class="material-symbols-outlined text-xl">search</span> {{ t.search }}
+                </a>
+                <a href="/progress" class="flex items-center gap-3 {% if request.url.path == '/progress' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary{% else %}text-on-surface-variant{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] rounded-lg">
+                    <span class="material-symbols-outlined text-xl">monitoring</span> {{ t.analytics }}
+                </a>
+
+                {% if user.role == 'admin' %}
+                <div class="mt-4 mb-2 px-4">
+                    <p class="text-[10px] font-bold text-outline uppercase tracking-[0.2em]">Administration</p>
+                </div>
+                <a href="/admin/users" class="flex items-center gap-3 {% if '/admin/users' in request.url.path %}bg-secondary-container text-on-secondary-container{% else %}text-on-surface-variant{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] rounded-lg">
+                    <span class="material-symbols-outlined text-xl">group</span> Users
+                </a>
+                <a href="/admin/audit-log" class="flex items-center gap-3 {% if '/admin/audit-log' in request.url.path %}bg-secondary-container text-on-secondary-container{% else %}text-on-surface-variant{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] rounded-lg">
+                    <span class="material-symbols-outlined text-xl">history_edu</span> {{ t.audit_log }}
+                </a>
+                <a href="/admin/settings" class="flex items-center gap-3 {% if '/admin/settings' in request.url.path %}bg-secondary-container text-on-secondary-container{% else %}text-on-surface-variant{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] rounded-lg">
+                    <span class="material-symbols-outlined text-xl">settings</span> Settings
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="px-4 pt-4 border-t border-outline-variant">
+                <div class="flex items-center gap-3 px-2 py-3 mb-2 bg-surface-container rounded-lg border border-outline-variant/30">
+                    <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-bold text-xs">
+                        {{ (user.display_name or user.username or user.email)[:1].upper() }}
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-[10px] font-bold text-on-surface truncate">{{ user.display_name or user.username or 'Unknown' }}</p>
+                        <p class="text-[9px] text-primary uppercase font-bold tracking-widest">{{ user.role }}</p>
+                    </div>
+                </div>
+                <a href="/logout" class="flex items-center gap-3 text-error hover:bg-error/10 px-3 py-2 text-[11px] uppercase tracking-widest transition-colors rounded-lg">
+                    <span class="material-symbols-outlined text-sm">power_settings_new</span> Logout
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sidebar (Desktop Only) -->
+    {% if user %}
     <aside class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface/90 backdrop-blur-2xl border-r border-outline-variant shadow-xl z-50 py-6">
         <div class="px-6 mb-8">
             <div>
-                <h1 class="font-headline font-bold text-6xl tracking-tighter uppercase leading-none">
-                    <span class="{% if theme == 'dark' %}text-white{% else %}text-black{% endif %}">KAI</span><span class="text-[#8B5CF6]">ZEN</span>
+                <h1 class="font-headline font-bold text-5xl tracking-tighter uppercase leading-none">
+                    <span class="{% if theme == 'dark' %}text-white{% else %}text-black{% endif %}">Mission</span><span class="text-[#8B5CF6]">Tracker</span>
                 </h1>
-                <p class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em] mt-2">{% if ui_mode == 'tactical' %}Operational OS v2.1{% else %}Project Management{% endif %}</p>
+                <p class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em] mt-2">Project Management</p>
             </div>
         </div>
         
@@ -140,7 +209,7 @@
             </a>
             <a href="/my-tasks" class="flex items-center gap-3 {% if request.url.path == '/my-tasks' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary shadow-[0_0_12px_rgba(139,92,246,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] transition-all">
                 <span class="material-symbols-outlined text-xl">inbox</span>
-                Inbox
+                My Tasks
             </a>
             <a href="/search" class="flex items-center gap-3 {% if request.url.path == '/search' %}bg-secondary-container text-on-secondary-container border-r-4 border-primary shadow-[0_0_12px_rgba(139,92,246,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50{% endif %} px-4 py-3 text-sm uppercase tracking-[0.2em] transition-all">
                 <span class="material-symbols-outlined text-xl">search</span>
@@ -172,24 +241,16 @@
 
         <!-- Settings Toggles -->
         <div class="px-4 py-4 border-t border-outline-variant bg-surface-container-low/50">
-            <p class="text-[9px] font-bold text-outline uppercase tracking-widest mb-3">System Preferences</p>
+            <p class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Theme</p>
             <form action="/settings/preferences" method="POST" class="space-y-3">
-                <!-- Hidden inputs to preserve the other value when one is toggled -->
                 <input type="hidden" name="theme" value="{{ theme }}">
-                <input type="hidden" name="ui_mode" value="{{ ui_mode }}">
+                <input type="hidden" name="ui_mode" value="standard">
 
                 <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-bold text-on-surface-variant uppercase">Theme</span>
+                    <span class="text-[9px] font-bold text-on-surface-variant uppercase">Appearance</span>
                     <div class="flex bg-surface-container p-0.5 rounded border border-outline-variant/30">
-                        <button type="submit" name="theme" value="dark" class="px-2 py-1 text-[8px] font-bold rounded {% if theme == 'dark' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">DARK</button>
-                        <button type="submit" name="theme" value="light" class="px-2 py-1 text-[8px] font-bold rounded {% if theme == 'light' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">LIGHT</button>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-bold text-on-surface-variant uppercase">Mode</span>
-                    <div class="flex bg-surface-container p-0.5 rounded border border-outline-variant/30">
-                        <button type="submit" name="ui_mode" value="tactical" class="px-2 py-1 text-[8px] font-bold rounded {% if ui_mode == 'tactical' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">TAC</button>
-                        <button type="submit" name="ui_mode" value="standard" class="px-2 py-1 text-[8px] font-bold rounded {% if ui_mode == 'standard' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">STD</button>
+                        <button type="submit" name="theme" value="dark" class="px-3 py-1 text-[8px] font-bold rounded {% if theme == 'dark' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">DARK</button>
+                        <button type="submit" name="theme" value="light" class="px-3 py-1 text-[8px] font-bold rounded {% if theme == 'light' %}bg-primary text-on-primary shadow-sm{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">LIGHT</button>
                     </div>
                 </div>
             </form>
@@ -202,22 +263,21 @@
                         {{ (user.display_name or user.username or user.email)[:1].upper() }}
                     </div>
                     <div class="overflow-hidden">
-                        <p class="text-[10px] font-bold text-on-surface truncate">{{ user.display_name or user.username or 'UNKNOWN_USER' }}</p>
-                        <p class="text-[8px] text-on-surface-variant font-mono uppercase opacity-70">ID: {{ user.id[:8] }}</p>
+                        <p class="text-[10px] font-bold text-on-surface truncate">{{ user.display_name or user.username or 'Unknown' }}</p>
                         <p class="text-[9px] text-primary uppercase font-bold tracking-widest mt-0.5">{{ user.role }}</p>
                     </div>
                 </div>
                 <a href="/logout" class="flex items-center gap-3 text-error hover:bg-error/10 px-3 py-2 text-[11px] uppercase tracking-widest transition-colors rounded-lg">
-                    <span class="material-symbols-outlined text-sm">power_settings_new</span> {% if ui_mode == 'tactical' %}Terminate Session{% else %}Logout{% endif %}
+                    <span class="material-symbols-outlined text-sm">power_settings_new</span> Logout
                 </a>
             </div>
         </div>
     </aside>
     {% endif %}
 
-    <main class="flex-1 {% if user %}md:ml-64{% endif %} bg-background min-h-screen flex flex-col relative overflow-hidden">
+    <main class="flex-1 {% if user %}md:ml-64{% endif %} bg-background min-h-screen flex flex-col relative overflow-hidden {% if user %}pt-14 md:pt-0{% endif %}">
         {% if user %}
-        <header class="flex justify-between items-center w-full px-8 h-16 sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant shadow-[0_0_8px_rgba(139,92,246,0.1)]">
+        <header class="hidden md:flex justify-between items-center w-full px-8 h-16 sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant shadow-[0_0_8px_rgba(139,92,246,0.1)]">
             <div class="flex items-center gap-4">
                 <h2 class="font-headline text-primary tracking-tighter uppercase text-2xl">{% block header_title %}{{ t.dashboard }}{% endblock %}</h2>
             </div>
@@ -225,7 +285,7 @@
             <div class="flex items-center gap-4">
                 <div class="relative hidden lg:block">
                     <form action="/search" method="get">
-                        <input name="q" class="bg-surface-container-low border border-outline-variant text-[11px] text-on-surface px-8 py-1.5 focus:border-primary focus:ring-0 transition-all w-64 rounded" placeholder="{% if ui_mode == 'tactical' %}QUERY DATABASE...{% else %}Search tasks...{% endif %}" type="text"/>
+                        <input name="q" class="bg-surface-container-low border border-outline-variant text-[11px] text-on-surface px-8 py-1.5 focus:border-primary focus:ring-0 transition-all w-64 rounded" placeholder="Search tasks..." type="text"/>
                         <span class="material-symbols-outlined absolute left-2 top-1.5 text-on-surface-variant text-sm">search</span>
                     </form>
                 </div>
@@ -233,31 +293,21 @@
         </header>
         {% endif %}
 
-        <section class="p-8 flex-1">
+        <section class="p-4 md:p-8 flex-1">
             {% block content %}{% endblock %}
         </section>
 
         <footer class="mt-auto p-4 border-t border-outline-variant flex justify-between items-center text-[8px] text-on-surface-variant font-bold uppercase tracking-[0.3em] bg-surface-container-lowest/20">
             <div class="flex items-center gap-6">
-                <span class="text-primary/60">© 2026 MISSION_AVINYA_CREDIT</span>
-                <span class="hidden sm:inline text-outline-variant">System_Architecture_v2.4</span>
+                <span class="text-primary/60">&copy; 2026 Mission Tracker</span>
             </div>
             <div class="flex items-center gap-4">
-                <span class="px-2 py-0.5 border border-primary/20 rounded text-primary">VIHANG'S MISSION AVINYA</span>
+                <span class="px-2 py-0.5 border border-primary/20 rounded text-primary">Powered by Mission Tracker</span>
             </div>
         </footer>
     </main>
 
     <div id="toast-container" class="fixed bottom-5 right-5 z-[110] flex flex-col gap-2"></div>
-    
-    <!-- Mobile Logout Button (Bottom Left) -->
-    {% if user %}
-    <div class="fixed bottom-6 left-6 z-[100] md:hidden">
-        <a href="/logout" class="flex items-center justify-center w-12 h-12 bg-surface/80 backdrop-blur-xl border border-error/30 text-error rounded-full shadow-2xl hover:bg-error/10 transition-all active:scale-95">
-            <span class="material-symbols-outlined text-xl">power_settings_new</span>
-        </a>
-    </div>
-    {% endif %}
     
     {% block scripts %}{% endblock %}
 </body>
