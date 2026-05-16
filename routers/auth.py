@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import RedirectResponse
 from typing import Optional
-from database import supabase
+from database import supabase, supabase_admin
 import auth
 from auth import set_auth_cookie, remove_auth_cookie, get_current_user
 from templates_utils import render_template
@@ -21,7 +21,9 @@ async def request_access_post(request: Request, full_name: str = Form(...), emai
             "club_name": club_name,
             "reason": reason
         }
-        supabase.table("access_requests").insert(payload).execute()
+        # Use supabase_admin to bypass RLS for incoming requests
+        client = supabase_admin if supabase_admin else supabase
+        client.table("access_requests").insert(payload).execute()
         return render_template("request_access.html", request, message="Your request has been submitted. We will contact you shortly.")
     except Exception as e:
         return render_template("request_access.html", request, error=str(e))
