@@ -260,10 +260,15 @@ def create_user_by_admin(email: str, password: str, display_name: str, role: str
     if not supabase_admin:
         raise Exception("Administrative actions require SUPABASE_SERVICE_ROLE_KEY to be configured.")
     try:
+        # We pass organization and role data in the metadata so the DB trigger can handle it automatically
         auth_res = supabase_admin.auth.admin.create_user({
             "email": email,
             "password": password,
-            "email_confirm": True
+            "email_confirm": True,
+            "user_metadata": {
+                "organization_id": str(org_id) if org_id else None,
+                "role": role
+            }
         })
         user_id = auth_res.user.id
     except Exception as e:
@@ -272,7 +277,8 @@ def create_user_by_admin(email: str, password: str, display_name: str, role: str
     update_data = {
         "username": username,
         "display_name": display_name,
-        "role": role
+        "role": role,
+        "email": email
     }
     if org_id:
         update_data["organization_id"] = org_id

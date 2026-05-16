@@ -89,38 +89,42 @@ async def list_system_requests(request: Request, user: dict = Depends(admin_requ
 
 @router.post("/system/approve/{request_id}")
 async def approve_system_request(request_id: str, user: dict = Depends(admin_required)):
+    from urllib.parse import quote
     req = supabase.table("access_requests").select("*").eq("id", request_id).single().execute().data
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
     
     try:
+        # Use supabase_admin for all administrative operations to bypass RLS
+        admin_client = supabase_admin if supabase_admin else supabase
+        
         # 1. Check if organization already exists
-        existing_org = supabase.table("organizations").select("*").ilike("name", req["club_name"]).execute()
+        existing_org = admin_client.table("organizations").select("*").ilike("name", req["club_name"]).execute()
         if existing_org.data:
             org_id = existing_org.data[0]["id"]
         else:
             # Create Organization
-            org_res = supabase.table("organizations").insert({"name": req["club_name"]}).execute()
+            org_res = admin_client.table("organizations").insert({"name": req["club_name"]}).execute()
             if not org_res.data:
                 raise Exception("Failed to create organization")
             org_id = org_res.data[0]["id"]
         
-        # 2. Check if user already exists
-        # We need to search profiles or use auth.admin to check
-        existing_user = _get_client().table("profiles").select("*").eq("email", req["email"]).execute()
+        # 2. Check if user already exists (using admin client to see all profiles)
+        existing_user = admin_client.table("profiles").select("*").eq("email", req["email"]).execute()
         
         if existing_user.data:
             user_id = existing_user.data[0]["id"]
             # Update existing user to be admin of the NEW organization
-            _get_client().table("profiles").update({
+            admin_client.table("profiles").update({
                 "organization_id": org_id,
                 "role": "admin",
                 "display_name": req["full_name"]
             }).eq("id", user_id).execute()
             
             # Mark request as approved
-            supabase.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
-            return RedirectResponse(url=f"/admin/system/requests?message=Existing user {req['email']} linked as Admin to {req['club_name']}.", status_code=303)
+            admin_client.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
+            msg = quote(f"Existing user {req['email']} linked as Admin to {req['club_name']}.")
+            return RedirectResponse(url=f"/admin/system/requests?message={msg}", status_code=303)
         
         else:
             # 3. Generate Random Password for NEW user
@@ -132,11 +136,13 @@ async def approve_system_request(request_id: str, user: dict = Depends(admin_req
             crud.create_user_by_admin(req["email"], temp_password, req["full_name"], "admin", user["id"], org_id)
             
             # 5. Mark request as approved
-            supabase.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
-            return RedirectResponse(url=f"/admin/system/requests?message=Successfully approved {req['club_name']}. Initial Password: {temp_password}", status_code=303)
+            admin_client.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
+            msg = quote(f"Successfully approved {req['club_name']}. Initial Password: {temp_password}")
+            return RedirectResponse(url=f"/admin/system/requests?message={msg}", status_code=303)
             
     except Exception as e:
-        return RedirectResponse(url=f"/admin/system/requests?error={str(e)}", status_code=303)
+        err_msg = quote(str(e))
+        return RedirectResponse(url=f"/admin/system/requests?error={err_msg}", status_code=303)
 
 @router.post("/system/reject/{request_id}")
 async def reject_system_request(request_id: str, user: dict = Depends(admin_required)):
