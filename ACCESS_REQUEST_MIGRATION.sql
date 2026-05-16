@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS public.access_requests (
 -- Enable RLS but allow anyone to insert
 ALTER TABLE public.access_requests ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public can submit access requests" ON public.access_requests;
-CREATE POLICY "Public can submit access requests" ON public.access_requests FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Public can submit access requests" ON public.access_requests 
+FOR INSERT TO anon WITH CHECK (TRUE);
 
 -- Only super-admins should be able to view/update. 
 -- For now, we'll allow admins to see it if we want, but ideally it's more restricted.
