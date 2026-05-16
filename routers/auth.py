@@ -8,58 +8,23 @@ from templates_utils import render_template
 
 router = APIRouter(tags=["auth"])
 
-@router.get("/signup")
-async def signup_page(request: Request):
-    return render_template("signup.html", request)
+@router.get("/request-access")
+async def request_access_page(request: Request):
+    return render_template("request_access.html", request)
 
-@router.post("/signup")
-async def signup_post(request: Request, club_name: str = Form(...), email: str = Form(...), password: str = Form(...), discord_webhook_url: Optional[str] = Form(None), activation_key: Optional[str] = Form(None)):
+@router.post("/request-access")
+async def request_access_post(request: Request, full_name: str = Form(...), email: str = Form(...), club_name: str = Form(...), reason: str = Form(None)):
     try:
-        # 1. Check if organization exists, if not create it
-        org_res = supabase.table("organizations").select("*").ilike("name", club_name).execute()
-        if org_res.data:
-            org_id = org_res.data[0]["id"]
-        else:
-            # Validate activation key for new organizations
-            if not activation_key:
-                raise Exception("An Activation Key is required to create a new organization. Please contact the KAIZEN administrator.")
-            
-            key_check = supabase.table("activation_keys").select("*").eq("key", activation_key).eq("is_used", False).execute()
-            if not key_check.data:
-                raise Exception("Invalid or already used Activation Key.")
-
-            # Create new organization
-            org_payload = {"name": club_name}
-            if discord_webhook_url:
-                org_payload["discord_webhook_url"] = discord_webhook_url
-            
-            new_org = supabase.table("organizations").insert(org_payload).execute()
-            if not new_org.data:
-                raise Exception("Failed to create organization")
-            org_id = new_org.data[0]["id"]
-
-            # Mark key as used
-            from datetime import datetime, timezone
-            supabase.table("activation_keys").update({"is_used": True, "used_at": datetime.now(timezone.utc).isoformat()}).eq("key", activation_key).execute()
-
-        # 2. Sign up the user
-        # We pass organization and role data in the metadata so the DB trigger can handle it automatically
-        auth_res = supabase.auth.sign_up({
-            "email": email, 
-            "password": password,
-            "options": {
-                "data": {
-                    "organization_id": str(org_id),
-                    "role": "admin" if not org_res.data else "member"
-                }
-            }
-        })
-        if not auth_res.user:
-            raise Exception("Signup failed. Check if the email is already registered.")
-        
+        payload = {
+            "full_name": full_name,
+            "email": email,
+            "club_name": club_name,
+            "reason": reason
+        }
+        supabase.table("access_requests").insert(payload).execute()
+        return render_template("request_access.html", request, message="Your request has been submitted. We will contact you shortly.")
     except Exception as e:
-        return render_template("signup.html", request, error=str(e))
-    return RedirectResponse(url="/login?message=Account created for '" + club_name + "'. Please log in.", status_code=303)
+        return render_template("request_access.html", request, error=str(e))
 
 @router.get("/login")
 async def login_page(request: Request, message: Optional[str] = None):

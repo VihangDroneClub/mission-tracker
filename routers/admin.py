@@ -75,3 +75,47 @@ async def org_settings_action(request: Request, name: str = Form(...), discord_w
     org_id = user.get("organization_id")
     crud.update_organization_settings(org_id, name, discord_webhook_url or None, user["id"])
     return RedirectResponse(url="/admin/settings", status_code=303)
+
+# ---------- System Administration (Super Admin) ----------
+
+@router.get("/system/requests")
+async def list_system_requests(request: Request, user: dict = Depends(admin_required)):
+    # Optional: Restricted to specific email/ID for security
+    # if user["email"] != "platform-owner@example.com":
+    #    raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    res = supabase.table("access_requests").select("*").eq("status", "pending").order("created_at", desc=True).execute()
+    return render_template("system_requests.html", request, user=user, requests=res.data)
+
+@router.post("/system/approve/{request_id}")
+async def approve_system_request(request_id: str, user: dict = Depends(admin_required)):
+    req = supabase.table("access_requests").select("*").eq("id", request_id).single().execute().data
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    try:
+        # 1. Create Organization
+        org_res = supabase.table("organizations").insert({"name": req["club_name"]}).execute()
+        if not org_res.data:
+            raise Exception("Failed to create organization")
+        org_id = org_res.data[0]["id"]
+        
+        # 2. Generate Random Password
+        import secrets
+        import string
+        temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        
+        # 3. Create Admin User for this organization
+        crud.create_user_by_admin(req["email"], temp_password, req["full_name"], "admin", user["id"], org_id)
+        
+        # 4. Mark request as approved
+        supabase.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
+        
+        return RedirectResponse(url=f"/admin/system/requests?message=Successfully approved {req['club_name']}. Initial Password: {temp_password}", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/system/requests?error={str(e)}", status_code=303)
+
+@router.post("/system/reject/{request_id}")
+async def reject_system_request(request_id: str, user: dict = Depends(admin_required)):
+    supabase.table("access_requests").update({"status": "rejected"}).eq("id", request_id).execute()
+    return RedirectResponse(url="/admin/system/requests?message=Request rejected.", status_code=303)

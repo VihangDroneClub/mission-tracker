@@ -37,8 +37,8 @@
         </p>
 
         <div class="flex flex-col sm:flex-row items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500">
-            <a href="/signup" class="w-full sm:w-auto px-12 py-5 bg-primary text-on-primary font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 hover:shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all transform active:scale-95 rounded-sm">
-                {% if ui_mode == 'tactical' %}Initialize_ID{% else %}Sign Up Now{% endif %}
+            <a href="/request-access" class="w-full sm:w-auto px-12 py-5 bg-primary text-on-primary font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 hover:shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all transform active:scale-95 rounded-sm">
+                {% if ui_mode == 'tactical' %}Initialize_Request{% else %}Request Access{% endif %}
             </a>
             <a href="/login" class="w-full sm:w-auto px-12 py-5 border border-outline-variant text-on-surface-variant font-black text-xs uppercase tracking-[0.3em] hover:bg-surface-variant hover:text-on-surface transition-all transform active:scale-95 rounded-sm">
                 {% if ui_mode == 'tactical' %}Access_Archive{% else %}Log In{% endif %}
@@ -114,8 +114,8 @@
             <p class="text-on-surface-variant text-sm uppercase tracking-[0.2em] opacity-60 mb-10">
                 {% if ui_mode == 'tactical' %}Initialize your operational hub in under 60 seconds.{% else %}Get your team organized in under a minute.{% endif %}
             </p>
-            <a href="/signup" class="inline-block px-16 py-5 bg-primary text-on-primary font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 hover:shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all transform active:scale-95 rounded-sm">
-                {% if ui_mode == 'tactical' %}Launch_Now{% else %}Get Started{% endif %}
+            <a href="/request-access" class="inline-block px-16 py-5 bg-primary text-on-primary font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 hover:shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all transform active:scale-95 rounded-sm">
+                {% if ui_mode == 'tactical' %}Request_Uplink{% else %}Request Access{% endif %}
             </a>
         </div>
     </section>
