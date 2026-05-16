@@ -4,4 +4,5 @@ supabase
 jinja2
 python-dotenv
 python-multipart
-# Cache buster: 2026-05-07-v2-deployment
+pytest
+httpx

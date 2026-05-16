@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from datetime import date
-from services.users import get_all_users_detailed
+from crud import get_all_users_detailed
 
 BASE_DIR = Path(__file__).resolve().parent
 env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")), autoescape=True)
