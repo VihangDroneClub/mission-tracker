@@ -47,17 +47,30 @@
 
             <div>
                 <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">{% if ui_mode == 'tactical' %}Authority_Level_Assignment{% else %}Assign Role{% endif %}</label>
-                <div class="grid grid-cols-3 gap-4">
-                    {% for role_key in ['member', 'lead', 'admin'] %}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% set available_roles = ['member', 'lead', 'admin', 'editor'] if user.role == 'editor' else ['member', 'lead', 'admin'] %}
+                    {% for role_key in available_roles %}
                     <label class="cursor-pointer group">
-                        <input type="radio" name="role" value="{{ role_key }}" class="peer hidden" {% if loop.first %}checked{% endif %}>
+                        <input type="radio" name="role" value="{{ role_key }}" class="peer hidden" {% if role_key == 'member' %}checked{% endif %}>
                         <div class="w-full text-center py-4 rounded-lg bg-surface-container-low text-on-surface-variant border border-outline-variant/30 peer-checked:border-primary peer-checked:bg-primary/20 peer-checked:text-primary transition-all shadow-sm">
-                            <span class="text-[10px] font-bold uppercase tracking-widest">{{ t[role_key] }}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-widest">{{ role_key|upper if ui_mode == 'tactical' else role_key|capitalize }}</span>
                         </div>
                     </label>
                     {% endfor %}
                 </div>
             </div>
+
+            {% if user.role == 'editor' %}
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">Assign to Club</label>
+                <select name="target_org_id" class="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4 focus:ring-1 focus:ring-primary transition-all text-on-surface outline-none text-sm appearance-none">
+                    <option value="">-- NO CLUB (SYSTEM) --</option>
+                    {% for org in organizations %}
+                    <option value="{{ org.id }}">{{ org.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
 
             <div class="pt-6 border-t border-outline-variant/20">
                 <button type="submit" class="w-full py-5 bg-primary text-on-primary rounded-lg font-bold text-[10px] uppercase tracking-[0.3em] hover:brightness-110 shadow-xl transition-all active:scale-[0.98]">

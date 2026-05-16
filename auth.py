@@ -78,11 +78,11 @@ async def get_current_user(request: Request) -> dict:
     }
 
 async def admin_required(user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "editor"):
         raise HTTPException(status_code=403, detail="Admins only")
     return user
 
 async def lead_or_admin_required(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("lead", "admin"):
+    if user["role"] not in ("lead", "admin", "editor"):
         raise HTTPException(status_code=403, detail="Leads or admins only")
     return user
