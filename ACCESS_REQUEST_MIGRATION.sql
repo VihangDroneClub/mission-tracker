@@ -12,8 +12,16 @@ CREATE TABLE IF NOT EXISTS public.access_requests (
 -- Enable RLS but allow anyone to insert
 ALTER TABLE public.access_requests ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public can submit access requests" ON public.access_requests;
-CREATE POLICY "Public can submit access requests" ON public.access_requests 
-FOR INSERT TO anon WITH CHECK (TRUE);
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.access_requests;
+
+CREATE POLICY "Enable insert for all users" 
+ON public.access_requests 
+FOR INSERT 
+WITH CHECK (true);
+
+-- Explicitly grant permissions to the API roles
+GRANT INSERT ON public.access_requests TO anon;
+GRANT INSERT ON public.access_requests TO authenticated;
 
 -- Only super-admins should be able to view/update. 
 -- For now, we'll allow admins to see it if we want, but ideally it's more restricted.
