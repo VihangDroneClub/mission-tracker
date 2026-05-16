@@ -94,24 +94,47 @@ async def approve_system_request(request_id: str, user: dict = Depends(admin_req
         raise HTTPException(status_code=404, detail="Request not found")
     
     try:
-        # 1. Create Organization
-        org_res = supabase.table("organizations").insert({"name": req["club_name"]}).execute()
-        if not org_res.data:
-            raise Exception("Failed to create organization")
-        org_id = org_res.data[0]["id"]
+        # 1. Check if organization already exists
+        existing_org = supabase.table("organizations").select("*").ilike("name", req["club_name"]).execute()
+        if existing_org.data:
+            org_id = existing_org.data[0]["id"]
+        else:
+            # Create Organization
+            org_res = supabase.table("organizations").insert({"name": req["club_name"]}).execute()
+            if not org_res.data:
+                raise Exception("Failed to create organization")
+            org_id = org_res.data[0]["id"]
         
-        # 2. Generate Random Password
-        import secrets
-        import string
-        temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        # 2. Check if user already exists
+        # We need to search profiles or use auth.admin to check
+        existing_user = _get_client().table("profiles").select("*").eq("email", req["email"]).execute()
         
-        # 3. Create Admin User for this organization
-        crud.create_user_by_admin(req["email"], temp_password, req["full_name"], "admin", user["id"], org_id)
+        if existing_user.data:
+            user_id = existing_user.data[0]["id"]
+            # Update existing user to be admin of the NEW organization
+            _get_client().table("profiles").update({
+                "organization_id": org_id,
+                "role": "admin",
+                "display_name": req["full_name"]
+            }).eq("id", user_id).execute()
+            
+            # Mark request as approved
+            supabase.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
+            return RedirectResponse(url=f"/admin/system/requests?message=Existing user {req['email']} linked as Admin to {req['club_name']}.", status_code=303)
         
-        # 4. Mark request as approved
-        supabase.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
-        
-        return RedirectResponse(url=f"/admin/system/requests?message=Successfully approved {req['club_name']}. Initial Password: {temp_password}", status_code=303)
+        else:
+            # 3. Generate Random Password for NEW user
+            import secrets
+            import string
+            temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+            
+            # 4. Create Admin User for this organization
+            crud.create_user_by_admin(req["email"], temp_password, req["full_name"], "admin", user["id"], org_id)
+            
+            # 5. Mark request as approved
+            supabase.table("access_requests").update({"status": "approved"}).eq("id", request_id).execute()
+            return RedirectResponse(url=f"/admin/system/requests?message=Successfully approved {req['club_name']}. Initial Password: {temp_password}", status_code=303)
+            
     except Exception as e:
         return RedirectResponse(url=f"/admin/system/requests?error={str(e)}", status_code=303)
 
