@@ -13,21 +13,34 @@ async def signup_page(request: Request):
     return render_template("signup.html", request)
 
 @router.post("/signup")
-async def signup_post(request: Request, club_name: str = Form(...), email: str = Form(...), password: str = Form(...), discord_webhook_url: Optional[str] = Form(None)):
+async def signup_post(request: Request, club_name: str = Form(...), email: str = Form(...), password: str = Form(...), discord_webhook_url: Optional[str] = Form(None), activation_key: Optional[str] = Form(None)):
     try:
         # 1. Check if organization exists, if not create it
         org_res = supabase.table("organizations").select("*").ilike("name", club_name).execute()
         if org_res.data:
             org_id = org_res.data[0]["id"]
         else:
+            # Validate activation key for new organizations
+            if not activation_key:
+                raise Exception("An Activation Key is required to create a new organization. Please contact the KAIZEN administrator.")
+            
+            key_check = supabase.table("activation_keys").select("*").eq("key", activation_key).eq("is_used", False).execute()
+            if not key_check.data:
+                raise Exception("Invalid or already used Activation Key.")
+
             # Create new organization
             org_payload = {"name": club_name}
             if discord_webhook_url:
                 org_payload["discord_webhook_url"] = discord_webhook_url
+            
             new_org = supabase.table("organizations").insert(org_payload).execute()
             if not new_org.data:
                 raise Exception("Failed to create organization")
             org_id = new_org.data[0]["id"]
+
+            # Mark key as used
+            from datetime import datetime, timezone
+            supabase.table("activation_keys").update({"is_used": True, "used_at": datetime.now(timezone.utc).isoformat()}).eq("key", activation_key).execute()
 
         # 2. Sign up the user
         auth_res = supabase.auth.sign_up({"email": email, "password": password})
