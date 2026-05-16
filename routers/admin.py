@@ -78,17 +78,18 @@ async def org_settings_action(request: Request, name: str = Form(...), discord_w
 
 # ---------- System Administration (Super Admin) ----------
 
+async def super_admin_required(user: dict = Depends(admin_required)):
+    if user["email"] != "test@vihang.com":
+        raise HTTPException(status_code=403, detail="Super Admin access required")
+    return user
+
 @router.get("/system/requests")
-async def list_system_requests(request: Request, user: dict = Depends(admin_required)):
-    # Optional: Restricted to specific email/ID for security
-    # if user["email"] != "platform-owner@example.com":
-    #    raise HTTPException(status_code=403, detail="Unauthorized")
-    
+async def list_system_requests(request: Request, user: dict = Depends(super_admin_required)):
     res = supabase.table("access_requests").select("*").eq("status", "pending").order("created_at", desc=True).execute()
     return render_template("system_requests.html", request, user=user, requests=res.data)
 
 @router.post("/system/approve/{request_id}")
-async def approve_system_request(request_id: str, user: dict = Depends(admin_required)):
+async def approve_system_request(request_id: str, user: dict = Depends(super_admin_required)):
     from urllib.parse import quote
     req = supabase.table("access_requests").select("*").eq("id", request_id).single().execute().data
     if not req:
@@ -145,6 +146,6 @@ async def approve_system_request(request_id: str, user: dict = Depends(admin_req
         return RedirectResponse(url=f"/admin/system/requests?error={err_msg}", status_code=303)
 
 @router.post("/system/reject/{request_id}")
-async def reject_system_request(request_id: str, user: dict = Depends(admin_required)):
+async def reject_system_request(request_id: str, user: dict = Depends(super_admin_required)):
     supabase.table("access_requests").update({"status": "rejected"}).eq("id", request_id).execute()
     return RedirectResponse(url="/admin/system/requests?message=Request rejected.", status_code=303)
