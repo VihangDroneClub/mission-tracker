@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from typing import Optional
 from database import supabase
 import auth
-from auth import set_auth_cookie, remove_auth_cookie
+from auth import set_auth_cookie, remove_auth_cookie, get_current_user
 from templates_utils import render_template
 
 router = APIRouter(tags=["auth"])
