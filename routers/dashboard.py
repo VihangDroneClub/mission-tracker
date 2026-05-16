@@ -18,19 +18,20 @@ async def dashboard(
     user: dict = Depends(get_current_user)
 ):
     org_id = user.get("organization_id")
+    is_editor = user.get("role") == "editor"
     today = date.today()
     
     try:
         # Optimized fetch with optional filters
         missions_query = _get_client().table("missions").select("*")
-        if org_id:
+        if org_id and not is_editor:
             missions_query = missions_query.eq("organization_id", org_id)
         if mission_id:
             missions_query = missions_query.eq("id", mission_id)
         missions_data = missions_query.execute().data or []
         
         projects_query = _get_client().table("projects").select("*")
-        if org_id:
+        if org_id and not is_editor:
             projects_query = projects_query.eq("organization_id", org_id)
         if mission_id:
             projects_query = projects_query.eq("mission_id", mission_id)
@@ -39,7 +40,7 @@ async def dashboard(
         projects_data = projects_query.execute().data or []
         
         tasks_query = _get_client().table("tasks").select("*")
-        if org_id:
+        if org_id and not is_editor:
             tasks_query = tasks_query.eq("organization_id", org_id)
         if project_id:
             tasks_query = tasks_query.eq("project_id", project_id)
@@ -52,21 +53,21 @@ async def dashboard(
                 tasks_query = tasks_query.eq("project_id", "00000000-0000-0000-0000-000000000000") # Empty result
         tasks_data = tasks_query.execute().data or []
 
-        # For the filter dropdowns, we need all missions/projects in the org
+        # For the filter dropdowns, we need all missions/projects in the system (for editor) or org
         all_missions_query = _get_client().table("missions").select("id, name")
-        if org_id:
+        if org_id and not is_editor:
             all_missions_query = all_missions_query.eq("organization_id", org_id)
         all_missions = all_missions_query.execute().data or []
 
         all_projects = []
         if mission_id:
             all_projects_query = _get_client().table("projects").select("id, name").eq("mission_id", mission_id)
-            if org_id:
+            if org_id and not is_editor:
                 all_projects_query = all_projects_query.eq("organization_id", org_id)
             all_projects = all_projects_query.execute().data or []
         
         profiles_query = _get_client().table("profiles").select("id", count="exact")
-        if org_id:
+        if org_id and not is_editor:
             profiles_query = profiles_query.eq("organization_id", org_id)
         profiles_res = profiles_query.execute()
         active_users_count = profiles_res.count if hasattr(profiles_res, 'count') else len(profiles_res.data)
@@ -128,8 +129,8 @@ async def dashboard(
             "active_users": active_users_count
         }
 
-        # Fetch recent activities for the sidebar
-        recent_logs = crud.get_audit_logs(limit=10, org_id=org_id)
+        # Fetch recent activities for the sidebar (Editor sees everything)
+        recent_logs = crud.get_audit_logs(limit=10, org_id=None if is_editor else org_id)
             
         return render_template("dashboard.html", request, user=user, 
                                missions=mission_stats, 
@@ -147,8 +148,9 @@ async def dashboard(
 @router.get("/my-tasks")
 async def my_tasks(request: Request, user: dict = Depends(get_current_user)):
     org_id = user.get("organization_id")
-    tasks = crud.get_tasks_for_user(user["id"], org_id)
-    username_map = get_username_map(org_id)
+    is_editor = user.get("role") == "editor"
+    tasks = crud.get_tasks_for_user(user["id"], None if is_editor else org_id)
+    username_map = get_username_map(None if is_editor else org_id)
     today = date.today()
     overdue = []
     due_today = []
@@ -193,8 +195,9 @@ async def progress_dashboard(request: Request, month: str = None, user: dict = D
         now = datetime.utcnow()
         month = now.strftime("%Y-%m")
     org_id = user.get("organization_id")
-    mission_stats, assignee_stats = crud.get_monthly_progress(month, org_id)
-    username_map = get_username_map(org_id)
+    is_editor = user.get("role") == "editor"
+    mission_stats, assignee_stats = crud.get_monthly_progress(month, None if is_editor else org_id)
+    username_map = get_username_map(None if is_editor else org_id)
     return render_template("progress.html", request, user=user, month=month,
                            mission_stats=mission_stats, assignee_stats=assignee_stats,
                            username_map=username_map)
@@ -260,18 +263,19 @@ async def search(
     user: dict = Depends(get_current_user)
 ):
     org_id = user.get("organization_id")
+    is_editor = user.get("role") == "editor"
     missions_query = _get_client().table("missions").select("*")
-    if org_id:
+    if org_id and not is_editor:
         missions_query = missions_query.eq("organization_id", org_id)
     missions = missions_query.execute().data
     
     mission_id_val = mission_id if mission_id else None
     projects = []
     if mission_id_val:
-        projects = crud.get_projects_for_mission(mission_id_val, org_id)
+        projects = crud.get_projects_for_mission(mission_id_val, None if is_editor else org_id)
 
     query = _get_client().table("tasks").select("*")
-    if org_id:
+    if org_id and not is_editor:
         query = query.eq("organization_id", org_id)
         
     if q.strip():
@@ -291,7 +295,7 @@ async def search(
             next_month = f"{y}-{m+1:02d}"
         query = query.lt("created_at", f"{next_month}-01T00:00:00Z")
     results = query.execute().data
-    username_map = get_username_map(org_id)
+    username_map = get_username_map(None if is_editor else org_id)
     return render_template(
         "search.html", request, user=user, results=results, query=q,
         missions=missions, selected_mission=mission_id, projects=projects,
